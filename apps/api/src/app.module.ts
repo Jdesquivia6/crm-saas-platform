@@ -7,6 +7,8 @@ import { PlatformModule } from './platform/platform.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { IamModule } from './iam/iam.module';
+import { SaasModule } from './saas/saas.module';
+import { CrmModule } from './crm/crm.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -20,6 +22,8 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     AuditModule,
     AuthModule,
     IamModule,
+    SaasModule,
+    CrmModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

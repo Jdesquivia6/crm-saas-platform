@@ -18,6 +18,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:seed:iam": "ts-node prisma/seed-iam.ts",
+    "prisma:seed:saas": "ts-node prisma/seed-saas.ts",
     "generate-token": "ts-node scripts/generate-token.ts"
   },
   "prisma": {

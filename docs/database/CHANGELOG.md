@@ -22,3 +22,16 @@
 - `iam.user_roles` — Asociación tenant_user-rol
 - `iam.user_branches` — Asociación usuario-sucursal
 - `iam.api_keys` — API Keys para acceso programático
+
+## Sprint 3
+
+### Added
+
+- `saas.planes` — Planes de suscripción (starter, pro, business, enterprise)
+- `saas.features` — Features del sistema (23 features predefinidas)
+- `saas.plan_features` — Asociación plan-feature con límites
+- `saas.subscriptions` — Suscripciones activas de tenants
+- `saas.subscription_history` — Historial de cambios de suscripción
+- `saas.usage_counters` — Contadores de uso por período
+- `saas.usage_events` — Eventos individuales de uso
+- `saas.tenant_feature_overrides` — Overrides personalizados por tenant

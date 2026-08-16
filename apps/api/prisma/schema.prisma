@@ -37,6 +37,12 @@ model Tenant {
   roles       Role[]
   userInvitations UserInvitation[]
   apiKeys     ApiKey[]
+  subscriptions Subscription[]
+  usageCounters UsageCounter[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+  companies    Company[]
+  contacts     Contact[]
+  tags         Tag[]
 
   @@index([status])
   @@index([createdAt])
@@ -128,6 +134,7 @@ model User {
   tenantUsers       TenantUser[]
   userBranches      UserBranch[]
   apiKeys           ApiKey[]
+  contactAssignments ContactAssignment[]
 
   @@index([email])
   @@index([status])
@@ -274,4 +281,359 @@ model ApiKey {
   @@index([userId])
   @@index([keyHash])
   @@map("api_keys")
+}
+
+// ─── SAAS ─────────────────────────────────────────────────
+
+model Plan {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  monthlyPrice Decimal? @map("monthly_price") @db.Decimal(18, 2)
+  annualPrice  Decimal? @map("annual_price") @db.Decimal(18, 2)
+  currencyCode String   @default("COP") @map("currency_code") @db.VarChar(3)
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  planFeatures PlanFeature[]
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@map("plans")
+}
+
+model Feature {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  module      String   @db.VarChar(50)
+  type        String   @default("BOOLEAN") @db.VarChar(30) // BOOLEAN, LIMIT, QUOTA
+  defaultValue Json?   @map("default_value")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  planFeatures PlanFeature[]
+  tenantFeatureOverrides TenantFeatureOverride[]
+
+  @@index([module])
+  @@map("features")
+}
+
+model PlanFeature {
+  id         String   @id @default(uuid()) @db.Uuid
+  planId     String   @map("plan_id") @db.Uuid
+  featureId  String   @map("feature_id") @db.Uuid
+  isEnabled  Boolean  @default(true) @map("is_enabled")
+  limitValue Json?    @map("limit_value") // { max: 100 } or null for unlimited
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  plan     Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature  Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+  @@index([planId])
+  @@index([featureId])
+  @@map("plan_features")
+}
+
+model Subscription {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  planId          String    @map("plan_id") @db.Uuid
+  status          String    @default("ACTIVE") @db.VarChar(30) // ACTIVE, PAST_DUE, CANCELLED, SUSPENDED
+  billingCycle    String    @default("MONTHLY") @map("billing_cycle") @db.VarChar(20) // MONTHLY, ANNUAL
+  startDate       DateTime  @map("start_date") @db.Timestamptz()
+  currentPeriodStart DateTime? @map("current_period_start") @db.Timestamptz()
+  currentPeriodEnd   DateTime? @map("current_period_end") @db.Timestamptz()
+  canceledAt      DateTime? @map("canceled_at") @db.Timestamptz()
+  trialEndsAt     DateTime? @map("trial_ends_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan    Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  history SubscriptionHistory[]
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model SubscriptionHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  subscriptionId  String   @map("subscription_id") @db.Uuid
+  action          String   @db.VarChar(50) // CREATED, UPDATED, RENEWED, CANCELED, REACTIVATED
+  previousPlanId  String?  @map("previous_plan_id") @db.Uuid
+  newPlanId       String?  @map("new_plan_id") @db.Uuid
+  previousStatus  String?  @map("previous_status") @db.VarChar(30)
+  newStatus       String?  @map("new_status") @db.VarChar(30)
+  reason          String?  @db.VarChar(250)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("subscription_history")
+}
+
+model UsageCounter {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  featureCode  String   @map("feature_code") @db.VarChar(100)
+  period       String   @db.VarChar(20) // 2026-08
+  currentUsage Int      @default(0) @map("current_usage")
+  limitValue   Json?    @map("limit_value")
+  resetAt      DateTime? @map("reset_at") @db.Timestamptz()
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, featureCode, period])
+  @@index([tenantId])
+  @@map("usage_counters")
+}
+
+model UsageEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  featureCode  String   @map("feature_code") @db.VarChar(100)
+  quantity     Int      @default(1)
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([tenantId])
+  @@index([tenantId, featureCode])
+  @@index([createdAt])
+  @@map("usage_events")
+}
+
+model TenantFeatureOverride {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  featureId   String   @map("feature_id") @db.Uuid
+  isEnabled   Boolean  @map("is_enabled")
+  limitValue  Json?    @map("limit_value")
+  reason      String?  @db.VarChar(250)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, featureId])
+  @@index([tenantId])
+  @@map("tenant_feature_overrides")
+}
+
+// ─── CRM ─────────────────────────────────────────────────
+
+model Company {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  tradeName   String?  @map("trade_name") @db.VarChar(200)
+  taxId       String?  @map("tax_id") @db.VarChar(50)
+  industry    String?  @db.VarChar(100)
+  website     String?  @db.VarChar(250)
+  email       String?  @db.VarChar(150)
+  phone       String?  @db.VarChar(50)
+  address     String?  @db.VarChar(250)
+  city        String?  @db.VarChar(100)
+  state       String?  @db.VarChar(100)
+  countryCode String?  @map("country_code") @db.VarChar(3)
+  postalCode  String?  @map("postal_code") @db.VarChar(20)
+  notes       String?  @db.Text
+  size        String?  @db.VarChar(30) // SMALL, MEDIUM, LARGE, ENTERPRISE
+  annualRevenue Decimal? @map("annual_revenue") @db.Decimal(18, 2)
+  employees   Int?
+  status      String   @default("ACTIVE") @db.VarChar(30)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactCompanyRelations ContactCompanyRelation[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@index([tenantId, status])
+  @@map("companies")
+}
+
+model Contact {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  firstName   String   @map("first_name") @db.VarChar(100)
+  lastName    String?  @map("last_name") @db.VarChar(100)
+  email       String?  @db.VarChar(150)
+  phone       String?  @db.VarChar(50)
+  mobile      String?  @db.VarChar(50)
+  avatarUrl   String?  @map("avatar_url") @db.VarChar(500)
+  jobTitle    String?  @map("job_title") @db.VarChar(100)
+  department  String?  @db.VarChar(100)
+  address     String?  @db.VarChar(250)
+  city        String?  @db.VarChar(100)
+  state       String?  @db.VarChar(100)
+  countryCode String?  @map("country_code") @db.VarChar(3)
+  postalCode  String?  @map("postal_code") @db.VarChar(20)
+  leadSource  String?  @map("lead_source") @db.VarChar(50) // WEB, REFERRAL, CAMPAIGN, MANUAL, API
+  status      String   @default("ACTIVE") @db.VarChar(30) // ACTIVE, INACTIVE, LEAD, CUSTOMER
+  lifecycleStage String? @map("lifecycle_stage") @db.VarChar(30) // SUBSCRIBER, LEAD, MQL, SQL, OPPORTUNITY, CUSTOMER, EVANGELIST
+  ownerUserId String?  @map("owner_user_id") @db.Uuid
+  score       Int?     @default(0)
+  tags        String[] // PostgreSQL array for simple tags
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactCompanyRelations ContactCompanyRelation[]
+  contactTags ContactTag[]
+  identifiers ContactIdentifier[]
+  addresses   ContactAddress[]
+  notes       ContactNote[]
+  assignments ContactAssignment[]
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([tenantId, phone])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, createdAt])
+  @@map("contacts")
+}
+
+model ContactCompanyRelation {
+  id        String  @id @default(uuid()) @db.Uuid
+  tenantId  String  @map("tenant_id") @db.Uuid
+  contactId String  @map("contact_id") @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  role      String? @db.VarChar(100) // OWNER, EMPLOYEE, CONTRACTOR, DECISION_MAKER
+  isPrimary Boolean @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, companyId])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([companyId])
+  @@map("contact_company_relations")
+}
+
+model ContactIdentifier {
+  id             String  @id @default(uuid()) @db.Uuid
+  tenantId       String  @map("tenant_id") @db.Uuid
+  contactId      String  @map("contact_id") @db.Uuid
+  identifierType String  @map("identifier_type") @db.VarChar(30) // EMAIL, PHONE, WHATSAPP, INSTAGRAM, FACEBOOK, DOCUMENT, EXTERNAL
+  value          String  @db.VarChar(250)
+  normalizedValue String @map("normalized_value") @db.VarChar(250)
+  isPrimary      Boolean @default(false) @map("is_primary")
+  isVerified     Boolean @default(false) @map("is_verified")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, identifierType, normalizedValue])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([normalizedValue])
+  @@map("contact_identifiers")
+}
+
+model ContactAddress {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  contactId   String  @map("contact_id") @db.Uuid
+  addressType String  @map("address_type") @db.VarChar(30) // HOME, WORK, BILLING, SHIPPING, OTHER
+  street      String? @db.VarChar(250)
+  city        String? @db.VarChar(100)
+  state       String? @db.VarChar(100)
+  countryCode String? @map("country_code") @db.VarChar(3)
+  postalCode  String? @map("postal_code") @db.VarChar(20)
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+  isPrimary   Boolean @default(false) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@map("contact_addresses")
+}
+
+model Tag {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String   @db.VarChar(100)
+  color     String?  @db.VarChar(7) // #FF5733
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactTags ContactTag[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+model ContactTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  contactId String   @map("contact_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, tagId])
+  @@index([contactId])
+  @@index([tagId])
+  @@map("contact_tags")
+}
+
+model ContactNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  contactId String   @map("contact_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  content   String   @db.Text
+  isPinned  Boolean  @default(false) @map("is_pinned")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([contactId, createdAt])
+  @@map("contact_notes")
+}
+
+model ContactAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  contactId  String   @map("contact_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  assignedBy String?  @map("assigned_by") @db.Uuid
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([contactId, userId])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([userId])
+  @@map("contact_assignments")
 }
