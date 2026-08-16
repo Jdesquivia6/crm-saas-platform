@@ -1,5 +1,3 @@
-# crm-saas-platform
-
 # CRM SaaS Platform
 
 Plataforma CRM SaaS modular, omnicanal y multiempresa orientada a la gestión de clientes, ventas, comunicaciones, servicio al cliente, marketing, automatizaciones, pagos, analítica e inteligencia artificial.
