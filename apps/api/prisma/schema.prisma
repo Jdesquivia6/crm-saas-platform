@@ -43,6 +43,8 @@ model Tenant {
   companies    Company[]
   contacts     Contact[]
   tags         Tag[]
+  customFields CustomField[]
+  activities   Activity[]
 
   @@index([status])
   @@index([createdAt])
@@ -459,6 +461,7 @@ model Company {
 
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contactCompanyRelations ContactCompanyRelation[]
+  activities Activity[]
 
   @@index([tenantId])
   @@index([tenantId, name])
@@ -499,6 +502,9 @@ model Contact {
   addresses   ContactAddress[]
   notes       ContactNote[]
   assignments ContactAssignment[]
+  consents    ContactConsent[]
+  customValues ContactCustomValue[]
+  activities  Activity[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -636,4 +642,125 @@ model ContactAssignment {
   @@index([contactId])
   @@index([userId])
   @@map("contact_assignments")
+}
+
+// ─── CLIENT 360° ──────────────────────────────────────
+
+model ContactConsent {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  contactId    String   @map("contact_id") @db.Uuid
+  channel      String   @db.VarChar(30) // EMAIL, SMS, WHATSAPP, PHONE, PUSH, ADS
+  status       String   @default("GRANTED") @db.VarChar(20) // GRANTED, DENIED, WITHDRAWN, PENDING
+  grantedAt    DateTime? @map("granted_at") @db.Timestamptz()
+  deniedAt     DateTime? @map("denied_at") @db.Timestamptz()
+  withdrawnAt  DateTime? @map("withdrawn_at") @db.Timestamptz()
+  source       String?  @db.VarChar(50) // WEB_FORM, API, IMPORT, MANUAL
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  legalBasis   String?  @map("legal_basis") @db.VarChar(50) // CONSENT, LEGITIMATE_INTEREST, CONTRACT, LEGAL_OBLIGATION
+  purpose      String?  @db.VarChar(200)
+  expiresAt    DateTime? @map("expires_at") @db.Timestamptz()
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, contactId, channel])
+  @@index([tenantId])
+  @@index([contactId])
+  @@map("contact_consents")
+}
+
+model CustomField {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  entityType   String   @map("entity_type") @db.VarChar(30) // CONTACT, COMPANY, LEAD
+  fieldName    String   @map("field_name") @db.VarChar(100)
+  fieldType    String   @map("field_type") @db.VarChar(30) // TEXT, NUMBER, DATE, SELECT, MULTI_SELECT, BOOLEAN, EMAIL, PHONE, URL, CURRENCY
+  label        String   @db.VarChar(200)
+  description  String?  @db.VarChar(500)
+  isRequired   Boolean  @default(false) @map("is_required")
+  isVisible    Boolean  @default(true) @map("is_visible")
+  defaultValue Json?    @map("default_value")
+  validation   Json?    // { min, max, pattern, options }
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  options CustomFieldOption[]
+  values  ContactCustomValue[]
+
+  @@unique([tenantId, entityType, fieldName])
+  @@index([tenantId])
+  @@index([tenantId, entityType])
+  @@map("custom_fields")
+}
+
+model CustomFieldOption {
+  id            String  @id @default(uuid()) @db.Uuid
+  customFieldId String  @map("custom_field_id") @db.Uuid
+  value         String  @db.VarChar(200)
+  label         String  @db.VarChar(200)
+  color         String? @db.VarChar(7)
+  sortOrder     Int     @default(0) @map("sort_order")
+  isActive      Boolean @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@index([customFieldId])
+  @@map("custom_field_options")
+}
+
+model ContactCustomValue {
+  id            String  @id @default(uuid()) @db.Uuid
+  tenantId      String  @map("tenant_id") @db.Uuid
+  contactId     String  @map("contact_id") @db.Uuid
+  customFieldId String  @map("custom_field_id") @db.Uuid
+  value         Json
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  contact     Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, customFieldId])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([customFieldId])
+  @@map("contact_custom_values")
+}
+
+model Activity {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  contactId    String?  @map("contact_id") @db.Uuid
+  companyId    String?  @map("company_id") @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  activityType String   @map("activity_type") @db.VarChar(30) // CALL, EMAIL, MEETING, TASK, NOTE, WHATSAPP, SMS, FORM_SUBMISSION
+  direction    String?  @db.VarChar(10) // INBOUND, OUTBOUND
+  subject      String?  @db.VarChar(250)
+  description  String?  @db.Text
+  outcome      String?  @db.VarChar(50) // CONNECTED, NO_ANSWER, VOICEMAIL, INTERESTED, NOT_INTERESTED, SCHEDULED, COMPLETED
+  scheduledAt  DateTime? @map("scheduled_at") @db.Timestamptz()
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz()
+  duration     Int?     // seconds
+  priority     String   @default("MEDIUM") @db.VarChar(10) // LOW, MEDIUM, HIGH, URGENT
+  status       String   @default("OPEN") @db.VarChar(20) // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([tenantId, activityType])
+  @@index([tenantId, status])
+  @@index([scheduledAt])
+  @@map("activities")
 }

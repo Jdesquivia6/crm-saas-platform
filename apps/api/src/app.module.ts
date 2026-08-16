@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { IamModule } from './iam/iam.module';
 import { SaasModule } from './saas/saas.module';
 import { CrmModule } from './crm/crm.module';
+import { Client360Module } from './client360/client360.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -24,6 +25,7 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     IamModule,
     SaasModule,
     CrmModule,
+    Client360Module,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
