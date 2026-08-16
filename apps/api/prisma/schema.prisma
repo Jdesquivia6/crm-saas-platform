@@ -45,6 +45,8 @@ model Tenant {
   tags         Tag[]
   customFields CustomField[]
   activities   Activity[]
+  matchCandidates ContactMatchCandidate[]
+  mergeHistories ContactMergeHistory[]
 
   @@index([status])
   @@index([createdAt])
@@ -505,6 +507,10 @@ model Contact {
   consents    ContactConsent[]
   customValues ContactCustomValue[]
   activities  Activity[]
+  matchCandidatesAsSource ContactMatchCandidate[] @relation("SourceContact")
+  matchCandidatesAsTarget ContactMatchCandidate[] @relation("TargetContact")
+  mergeHistoryAsSource ContactMergeHistory[] @relation("SourceMerge")
+  mergeHistoryAsTarget ContactMergeHistory[] @relation("TargetMerge")
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -763,4 +769,60 @@ model Activity {
   @@index([tenantId, status])
   @@index([scheduledAt])
   @@map("activities")
+}
+
+// ─── IDENTITY RESOLUTION ──────────────────────────────
+
+model ContactMatchCandidate {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  sourceContactId String  @map("source_contact_id") @db.Uuid
+  targetContactId String  @map("target_contact_id") @db.Uuid
+  matchType      String   @map("match_type") @db.VarChar(20) // EXACT, PROBABLE, FUZZY
+  confidenceScore Decimal @map("confidence_score") @db.Decimal(5, 4) // 0.0000 to 1.0000
+  matchCriteria  Json     // { email: true, phone: false, name: 0.95, ... }
+  status         String   @default("PENDING") @db.VarChar(20) // PENDING, REVIEWED, MERGED, DISMISSED
+  reviewedBy     String?  @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime? @map("reviewed_at") @db.Timestamptz()
+  dismissReason  String?  @map("dismiss_reason") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant        Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceContact Contact @relation("SourceContact", fields: [sourceContactId], references: [id], onDelete: Cascade)
+  targetContact Contact @relation("TargetContact", fields: [targetContactId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceContactId, targetContactId])
+  @@index([tenantId])
+  @@index([sourceContactId])
+  @@index([targetContactId])
+  @@index([tenantId, status])
+  @@index([confidenceScore])
+  @@map("contact_match_candidates")
+}
+
+model ContactMergeHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  sourceContactId String  @map("source_contact_id") @db.Uuid
+  targetContactId String  @map("target_contact_id") @db.Uuid
+  mergedBy       String?  @map("merged_by") @db.Uuid
+  mergeStrategy  String   @map("merge_strategy") @db.VarChar(20) // KEEP_TARGET, KEEP_SOURCE, MANUAL
+  mergedData     Json     // Snapshot of merged fields
+  backupData     Json?    // Full backup of source before merge
+  status         String   @default("COMPLETED") @db.VarChar(20) // COMPLETED, REVERTED, FAILED
+  revertedAt     DateTime? @map("reverted_at") @db.Timestamptz()
+  revertedBy     String?  @map("reverted_by") @db.Uuid
+  revertReason   String?  @map("revert_reason") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant        Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceContact Contact @relation("SourceMerge", fields: [sourceContactId], references: [id], onDelete: Cascade)
+  targetContact Contact @relation("TargetMerge", fields: [targetContactId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([sourceContactId])
+  @@index([targetContactId])
+  @@index([tenantId, createdAt])
+  @@map("contact_merge_history")
 }
