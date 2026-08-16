@@ -47,6 +47,9 @@ model Tenant {
   activities   Activity[]
   matchCandidates ContactMatchCandidate[]
   mergeHistories ContactMergeHistory[]
+  channelAccounts ChannelAccount[]
+  conversations Conversation[]
+  cannedResponses CannedResponse[]
 
   @@index([status])
   @@index([createdAt])
@@ -511,6 +514,9 @@ model Contact {
   matchCandidatesAsTarget ContactMatchCandidate[] @relation("TargetContact")
   mergeHistoryAsSource ContactMergeHistory[] @relation("SourceMerge")
   mergeHistoryAsTarget ContactMergeHistory[] @relation("TargetMerge")
+  channelIdentities ContactChannelIdentity[]
+  conversationsAsParticipant ConversationParticipant[]
+  conversations Conversation[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -825,4 +831,186 @@ model ContactMergeHistory {
   @@index([targetContactId])
   @@index([tenantId, createdAt])
   @@map("contact_merge_history")
+}
+
+// ─── OMNICHANNEL ──────────────────────────────────────
+
+model ChannelAccount {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  channelType  String   @map("channel_type") @db.VarChar(30) // WHATSAPP, EMAIL, SMS, INSTAGRAM, FACEBOOK, WEBCHAT, TELEGRAM
+  name         String   @db.VarChar(200)
+  config       Json     // { phoneNumber, apiKey, webhookUrl, etc. }
+  status       String   @default("ACTIVE") @db.VarChar(20) // ACTIVE, INACTIVE, ERROR
+  lastSyncAt   DateTime? @map("last_sync_at") @db.Timestamptz()
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, channelType])
+  @@map("channel_accounts")
+}
+
+model ContactChannelIdentity {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  contactId    String   @map("contact_id") @db.Uuid
+  channelType  String   @map("channel_type") @db.VarChar(30)
+  channelIdentifier String @map("channel_identifier") @db.VarChar(250)
+  displayName  String?  @map("display_name") @db.VarChar(200)
+  avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
+  isVerified   Boolean  @default(false) @map("is_verified")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, channelType, channelIdentifier])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([channelType, channelIdentifier])
+  @@map("contact_channel_identities")
+}
+
+model Conversation {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  contactId    String?  @map("contact_id") @db.Uuid
+  channelType  String   @map("channel_type") @db.VarChar(30)
+  channelAccountId String? @map("channel_account_id") @db.Uuid
+  externalId   String?  @map("external_id") @db.VarChar(250)
+  subject      String?  @db.VarChar(250)
+  status       String   @default("OPEN") @db.VarChar(20) // OPEN, PENDING, RESOLVED, CLOSED
+  priority     String   @default("NORMAL") @db.VarChar(10) // LOW, NORMAL, HIGH, URGENT
+  lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz()
+  lastMessagePreview String? @map("last_message_preview") @db.VarChar(500)
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  closedAt     DateTime? @map("closed_at") @db.Timestamptz()
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact    Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  participants ConversationParticipant[]
+  messages    Message[]
+  assignments ConversationAssignment[]
+  statusHistory ConversationStatusHistory[]
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([tenantId, status])
+  @@index([tenantId, channelType])
+  @@index([externalId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  contactId      String?  @map("contact_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  role           String   @default("PARTICIPANT") @db.VarChar(20) // PARTICIPANT, OBSERVER, BOT
+  joinedAt       DateTime @default(now()) @map("joined_at") @db.Timestamptz()
+  leftAt         DateTime? @map("left_at") @db.Timestamptz()
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, contactId])
+  @@index([conversationId])
+  @@index([contactId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  senderType     String   @map("sender_type") @db.VarChar(20) // CONTACT, USER, BOT, SYSTEM
+  senderId       String?  @map("sender_id") @db.Uuid
+  direction      String   @db.VarChar(10) // INBOUND, OUTBOUND
+  content        String   @db.Text
+  contentType    String   @default("TEXT") @map("content_type") @db.VarChar(20) // TEXT, IMAGE, FILE, AUDIO, VIDEO, LOCATION, CONTACT, TEMPLATE
+  externalId     String?  @map("external_id") @db.VarChar(250)
+  status         String   @default("SENT") @db.VarChar(20) // DRAFT, SENT, DELIVERED, READ, FAILED
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+
+  @@index([tenantId])
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@index([externalId])
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  fileName  String   @map("file_name") @db.VarChar(250)
+  fileSize  Int?     @map("file_size")
+  mimeType  String?  @map("mime_type") @db.VarChar(100)
+  url       String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+model ConversationAssignment {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  assignedBy     String?  @map("assigned_by") @db.Uuid
+  isPrimary      Boolean  @default(false) @map("is_primary")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_assignments")
+}
+
+model ConversationStatusHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  fromStatus     String?  @map("from_status") @db.VarChar(20)
+  toStatus       String   @map("to_status") @db.VarChar(20)
+  changedBy      String?  @map("changed_by") @db.Uuid
+  reason         String?  @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@map("conversation_status_history")
+}
+
+model CannedResponse {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  shortcut  String   @db.VarChar(50)
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  category  String?  @db.VarChar(100)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, shortcut])
+  @@index([tenantId])
+  @@map("canned_responses")
 }

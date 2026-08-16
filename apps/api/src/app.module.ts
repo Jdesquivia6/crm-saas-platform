@@ -11,6 +11,7 @@ import { SaasModule } from './saas/saas.module';
 import { CrmModule } from './crm/crm.module';
 import { Client360Module } from './client360/client360.module';
 import { IdentityModule } from './identity/identity.module';
+import { OmnichannelModule } from './omnichannel/omnichannel.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -28,6 +29,7 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     CrmModule,
     Client360Module,
     IdentityModule,
+    OmnichannelModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
