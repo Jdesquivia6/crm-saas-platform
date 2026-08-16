@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── PLATFORM ─────────────────────────────────────────────
+
+model Tenant {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique @db.VarChar(30)
+  legalName   String    @map("legal_name") @db.VarChar(200)
+  tradeName   String?   @map("trade_name") @db.VarChar(200)
+  taxId       String?   @map("tax_id") @db.VarChar(50)
+  email       String?   @db.VarChar(150)
+  phone       String?   @db.VarChar(50)
+  countryCode String?   @map("country_code") @db.VarChar(3)
+  state       String?   @db.VarChar(100)
+  city        String?   @db.VarChar(100)
+  address     String?   @db.VarChar(250)
+  postalCode  String?   @map("postal_code") @db.VarChar(20)
+  currencyCode String   @default("COP") @map("currency_code") @db.VarChar(3)
+  timezone    String    @default("America/Bogota") @db.VarChar(50)
+  locale      String    @default("es-CO") @db.VarChar(10)
+  status      String    @default("TRIAL") @db.VarChar(30)
+  trialEndsAt DateTime? @map("trial_ends_at") @db.Timestamptz()
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  settings    TenantSetting[]
+  branches    Branch[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("tenants")
+}
+
+model TenantSetting {
+  id           String  @id @default(uuid()) @db.Uuid
+  tenantId     String  @map("tenant_id") @db.Uuid
+  settingKey   String  @map("setting_key") @db.VarChar(100)
+  settingValue Json?   @map("setting_value")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, settingKey])
+  @@index([tenantId])
+  @@map("tenant_settings")
+}
+
+model Branch {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  code        String   @db.VarChar(30)
+  name        String   @db.VarChar(150)
+  address     String?  @db.VarChar(250)
+  city        String?  @db.VarChar(100)
+  state       String?  @db.VarChar(100)
+  countryCode String?  @map("country_code") @db.VarChar(3)
+  phone       String?  @db.VarChar(50)
+  email       String?  @db.VarChar(150)
+  latitude    Decimal? @db.Decimal(10, 7)
+  longitude   Decimal? @db.Decimal(10, 7)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("branches")
+}
+
+// ─── AUDIT ────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  module     String   @db.VarChar(100)
+  entityType String?  @map("entity_type") @db.VarChar(100)
+  entityId   String?  @map("entity_id") @db.Uuid
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.Text
+  requestId  String?  @map("request_id") @db.VarChar(100)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz()
+
+  @@index([tenantId])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, action])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}

@@ -1,125 +1,114 @@
-# CRM SaaS Platform
+# CRM SaaS Omnicanal
 
-Plataforma CRM SaaS modular, omnicanal y multiempresa orientada a la gestión de clientes, ventas, comunicaciones, servicio al cliente, marketing, automatizaciones, pagos, analítica e inteligencia artificial.
+Plataforma CRM SaaS, modular, multiempresa y omnicanal.
 
-## Estado del proyecto
+## Stack
 
-🚧 En desarrollo
+- **Frontend:** React, TypeScript, Vite, Material UI, TanStack Query
+- **Backend:** NestJS, TypeScript, Prisma ORM
+- **Database:** PostgreSQL 16, Redis 7
+- **Auth:** Keycloak (Sprint 2)
+- **Infra:** Docker, Docker Compose
 
-Versión actual: `0.1.0`
+## Requisitos
 
----
+- Node.js 20+
+- Docker y Docker Compose
+- pnpm (opcional)
 
-## Objetivo
+## Instalación Rápida
 
-Construir una plataforma CRM escalable que permita a diferentes empresas administrar de manera centralizada:
+```bash
+# Levantar servicios de base de datos
+docker-compose up -d postgres redis
 
-- Clientes y contactos.
-- Historial 360° del cliente.
-- Leads y oportunidades.
-- Productos y servicios.
-- Cotizaciones y ventas.
-- Comunicaciones omnicanal.
-- WhatsApp.
-- Instagram.
-- Facebook.
-- Correo electrónico.
-- Tickets y servicio al cliente.
-- Campañas de marketing.
-- Pagos.
-- Suscripciones.
-- Automatizaciones.
-- Analítica comercial.
-- Inteligencia artificial.
+# Instalar dependencias del backend
+cd apps/api
+npm install
 
----
+# Generar cliente Prisma
+npx prisma generate
 
-## Arquitectura
+# Ejecutar migraciones
+npx prisma migrate dev
 
-El proyecto utilizará inicialmente una arquitectura de Monolito Modular preparada para evolucionar hacia servicios independientes cuando sea necesario.
+# Iniciar backend en desarrollo
+npm run start:dev
+```
 
-La plataforma será Multi-Tenant, permitiendo que múltiples empresas utilicen la misma infraestructura manteniendo aislamiento lógico y de seguridad de su información.
-
----
-
-## Tecnologías
+El backend estará disponible en http://localhost:3000
+Swagger docs: http://localhost:3000/docs
 
 ### Frontend
 
-- React
-- TypeScript
-- Vite
-- PWA
-- Material UI
-- TanStack Query
-- React Hook Form
-- Zod
+```bash
+cd apps/web
+npm install
+npm run dev
+```
 
-### Backend
+El frontend estará disponible en http://localhost:5173
 
-- Node.js
-- TypeScript
-- NestJS
-- REST API
-- OpenAPI / Swagger
-- WebSockets
+### Docker Compose Completo
 
-### Base de datos
+```bash
+docker-compose up --build
+```
 
-- PostgreSQL
-- Prisma ORM
+## Estructura del Proyecto
 
-### Cache y procesamiento
+```
+crm-saas-platform/
+├── apps/
+│   ├── api/          # Backend NestJS
+│   └── web/          # Frontend React
+├── packages/
+│   └── shared/       # Código compartido
+├── prisma/
+│   └── schema.prisma # Esquema de base de datos
+├── docs/
+│   ├── architecture/ # Documentación de arquitectura
+│   ├── database/     # Changelog y diccionario de datos
+│   ├── sprints/      # Informes de sprint
+│   └── adr/          # Architecture Decision Records
+├── docker/
+│   └── nginx.conf    # Configuración Nginx
+└── docker-compose.yml
+```
 
-- Redis
-- BullMQ
+## API Endpoints (Sprint 1)
 
-### Autenticación
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | /api/v1/health | Health check |
+| POST | /api/v1/tenants | Crear tenant |
+| GET | /api/v1/tenants | Listar tenants |
+| GET | /api/v1/tenants/:id | Obtener tenant |
+| PATCH | /api/v1/tenants/:id | Actualizar tenant |
+| GET | /api/v1/tenants/:id/settings | Obtener settings |
+| POST | /api/v1/tenants/:id/settings | Crear/actualizar setting |
+| POST | /api/v1/tenants/:id/branches | Crear branch |
+| GET | /api/v1/tenants/:id/branches | Listar branches |
+| PATCH | /api/v1/tenants/:id/branches/:branchId | Actualizar branch |
+| GET | /api/v1/audit/logs | Obtener logs de auditoría |
 
-- Keycloak
-- OAuth 2.0
-- OpenID Connect
-- JWT
+## Desarrollo
 
-### Almacenamiento
+```bash
+# Tests del backend
+cd apps/api
+npm test
 
-- Object Storage compatible con S3
+# Lint
+npm run lint
 
-### Infraestructura
+# Build
+npm run build
+```
 
-- Docker
-- Docker Compose
-- Nginx
+## Sprint Status
 
-### Observabilidad
-
-- OpenTelemetry
-- Prometheus
-- Grafana
-
----
-
-## Estructura del proyecto
-
-```text
-apps/
-├── web
-├── api
-└── worker
-
-packages/
-├── shared
-├── types
-├── validation
-└── config
-
-database/
-├── migrations
-├── seeds
-└── scripts
-
-docs/
-├── architecture
-├── database
-├── api
-└── sprints
+```
+ACTIVE_SPRINT: 1
+STATUS: IN_PROGRESS
+```
