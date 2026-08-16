@@ -33,6 +33,10 @@ model Tenant {
 
   settings    TenantSetting[]
   branches    Branch[]
+  tenantUsers TenantUser[]
+  roles       Role[]
+  userInvitations UserInvitation[]
+  apiKeys     ApiKey[]
 
   @@index([status])
   @@index([createdAt])
@@ -73,6 +77,7 @@ model Branch {
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userBranches UserBranch[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -101,4 +106,172 @@ model AuditLog {
   @@index([tenantId, action])
   @@index([occurredAt])
   @@map("audit_logs")
+}
+
+// ─── IAM ──────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  keycloakId        String?   @unique @map("keycloak_id") @db.VarChar(100)
+  email             String    @unique @db.VarChar(150)
+  firstName         String?   @map("first_name") @db.VarChar(100)
+  lastName          String?   @map("last_name") @db.VarChar(100)
+  phone             String?   @db.VarChar(50)
+  avatarUrl         String?   @map("avatar_url") @db.VarChar(500)
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  status            String    @default("ACTIVE") @db.VarChar(30)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz()
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenantUsers       TenantUser[]
+  userBranches      UserBranch[]
+  apiKeys           ApiKey[]
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model TenantUser {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  status    String   @default("ACTIVE") @db.VarChar(30)
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz()
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userRoles UserRole[]
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_users")
+}
+
+model UserInvitation {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  email       String   @db.VarChar(150)
+  roleCode    String   @map("role_code") @db.VarChar(50)
+  invitedById String?  @map("invited_by_id") @db.Uuid
+  status      String   @default("PENDING") @db.VarChar(30)
+  token       String   @unique @db.VarChar(200)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, email])
+  @@index([token])
+  @@map("user_invitations")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  code        String   @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(250)
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant         Tenant?        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+  userRoles      UserRole[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(100)
+  module      String   @db.VarChar(50)
+  entity      String   @db.VarChar(50)
+  action      String   @db.VarChar(50)
+  description String?  @db.VarChar(250)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantUserId String   @map("tenant_user_id") @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenantUser TenantUser @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantUserId, roleId])
+  @@index([tenantUserId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model UserBranch {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  branchId  String   @map("branch_id") @db.Uuid
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+  @@map("user_branches")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String    @db.VarChar(100)
+  keyHash     String    @unique @map("key_hash") @db.VarChar(200)
+  keyPrefix   String    @map("key_prefix") @db.VarChar(10)
+  scopes      Json?
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz()
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz()
+  status      String    @default("ACTIVE") @db.VarChar(30)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
 }

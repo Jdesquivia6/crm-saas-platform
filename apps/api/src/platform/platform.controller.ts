@@ -7,13 +7,14 @@ import {
   Param,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { PlatformService } from './platform.service';
 import { CreateTenantDto, UpdateTenantDto } from './dto/tenant.dto';
 import { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
 import { CreateSettingDto } from './dto/setting.dto';
 
 @ApiTags('platform')
+@ApiBearerAuth('access-token')
 @Controller('tenants')
 export class TenantController {
   constructor(private readonly platformService: PlatformService) {}

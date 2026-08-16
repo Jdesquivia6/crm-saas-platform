@@ -27,9 +27,19 @@ async function bootstrap() {
     .setTitle('CRM SaaS Omnicanal API')
     .setDescription('API del CRM SaaS Omnicanal - Documentación generada por Swagger')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Ingresa el token JWT (sin prefijo "Bearer ")',
+      },
+      'access-token',
+    )
     .addTag('health', 'Health check')
     .addTag('platform', 'Gestión de tenants y configuración')
     .addTag('audit', 'Auditoría del sistema')
+    .addTag('iam', 'Gestión de identidades, roles y permisos')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
