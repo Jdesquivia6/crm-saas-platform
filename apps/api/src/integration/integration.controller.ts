@@ -157,6 +157,82 @@ export class IntegrationController {
     return this.integrationService.sendWhatsAppMessage(tenantId, dto);
   }
 
+  // ─── SYNC JOBS ──────────────────────────────────────
+
+  @Post('sync-jobs')
+  @RequirePermissions('admin.settings.manage')
+  @ApiOperation({ summary: 'Create sync job' })
+  createSyncJob(
+    @Query('tenantId') tenantId: string,
+    @Body('channelType') channelType: string,
+    @Body('connectionId') connectionId?: string,
+    @Body('syncType') syncType?: string,
+  ) {
+    return this.integrationService.createSyncJob(tenantId, channelType, connectionId, syncType);
+  }
+
+  @Get('sync-jobs')
+  @RequirePermissions('admin.settings.view')
+  @ApiOperation({ summary: 'List sync jobs' })
+  findSyncJobs(
+    @Query('tenantId') tenantId: string,
+    @Query('channelType') channelType?: string,
+  ) {
+    return this.integrationService.findSyncJobs(tenantId, channelType);
+  }
+
+  @Get('sync-jobs/:id')
+  @RequirePermissions('admin.settings.view')
+  @ApiOperation({ summary: 'Get sync job by ID' })
+  findSyncJob(
+    @Query('tenantId') tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.integrationService.findSyncJobById(tenantId, id);
+  }
+
+  @Patch('sync-jobs/:id/start')
+  @RequirePermissions('admin.settings.manage')
+  @ApiOperation({ summary: 'Start sync job' })
+  startSyncJob(
+    @Query('tenantId') tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.integrationService.startSyncJob(tenantId, id);
+  }
+
+  @Patch('sync-jobs/:id/complete')
+  @RequirePermissions('admin.settings.manage')
+  @ApiOperation({ summary: 'Complete sync job' })
+  completeSyncJob(
+    @Query('tenantId') tenantId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('processedCount') processedCount: number,
+    @Body('errorCount') errorCount?: number,
+  ) {
+    return this.integrationService.completeSyncJob(tenantId, id, processedCount, errorCount);
+  }
+
+  // ─── CHANNEL WEBHOOKS ───────────────────────────────
+
+  @Post('webhooks/instagram')
+  @ApiOperation({ summary: 'Process Instagram webhook' })
+  processInstagramWebhook(@Body() payload: any) {
+    return this.integrationService.processChannelInbound('default', 'INSTAGRAM', payload);
+  }
+
+  @Post('webhooks/facebook')
+  @ApiOperation({ summary: 'Process Facebook Messenger webhook' })
+  processFacebookWebhook(@Body() payload: any) {
+    return this.integrationService.processChannelInbound('default', 'FACEBOOK', payload);
+  }
+
+  @Post('webhooks/email')
+  @ApiOperation({ summary: 'Process Email webhook' })
+  processEmailWebhook(@Body() payload: any) {
+    return this.integrationService.processChannelInbound('default', 'EMAIL', payload);
+  }
+
   // ─── STATS ──────────────────────────────────────────
 
   @Get('stats')

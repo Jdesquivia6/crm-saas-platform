@@ -2323,3 +2323,1887 @@ La estabilidad del sprint anterior tiene prioridad sobre la velocidad del siguie
 ---
 
 # FIN DEL DOCUMENTO MAESTRO
+
+
+# REESTRUCTURACIÓN DEL FRONTEND CRM SAAS
+
+## Objetivo
+
+Reestructurar progresivamente todo el frontend de `crm-saas-platform` para obtener una experiencia visual moderna, limpia, rápida, profesional y altamente funcional.
+
+Tomar como **referencia de UX/UI**:
+
+`https://es.kommo.com/crm/`
+
+Kommo debe utilizarse únicamente como **referencia conceptual y visual**.
+
+NO realizar una copia literal de:
+
+* Marca Kommo.
+* Logo.
+* Nombre.
+* Ilustraciones.
+* Fotografías.
+* Textos.
+* Código.
+* CSS.
+* Iconos propietarios.
+* Colores exactos de marca.
+* Assets.
+* Componentes propietarios.
+
+Debemos construir un **Design System original para nuestro CRM**, inspirado en los patrones de interacción, claridad, organización y experiencia de usuario observados en este tipo de CRM conversacional.
+
+---
+
+# 1. OBJETIVO VISUAL
+
+Queremos que la aplicación transmita:
+
+* simplicidad;
+* velocidad;
+* modernidad;
+* tecnología;
+* inteligencia;
+* facilidad de aprendizaje;
+* alto nivel empresarial;
+* sensación SaaS;
+* excelente utilización del espacio.
+
+Evitar:
+
+* interfaces saturadas;
+* formularios gigantes;
+* exceso de bordes;
+* exceso de colores;
+* modales innecesarios;
+* menús con demasiados textos;
+* pantallas vacías;
+* tablas difíciles de usar en móvil.
+
+---
+
+# 2. DESIGN SYSTEM
+
+Crear un sistema visual centralizado.
+
+Estructura sugerida:
+
+```text
+src/
+└── design-system/
+    ├── tokens/
+    │   ├── colors.ts
+    │   ├── typography.ts
+    │   ├── spacing.ts
+    │   ├── shadows.ts
+    │   ├── radius.ts
+    │   └── breakpoints.ts
+    │
+    ├── components/
+    │   ├── Button
+    │   ├── Input
+    │   ├── Select
+    │   ├── Modal
+    │   ├── Drawer
+    │   ├── Card
+    │   ├── Badge
+    │   ├── Avatar
+    │   ├── Tooltip
+    │   ├── Dropdown
+    │   ├── Tabs
+    │   ├── DataTable
+    │   ├── EmptyState
+    │   ├── Skeleton
+    │   └── Toast
+    │
+    └── layouts/
+```
+
+Todos los módulos deben reutilizar estos componentes.
+
+No crear componentes visuales duplicados dentro de cada módulo.
+
+---
+
+# 3. ESTRUCTURA GENERAL DESKTOP
+
+Crear un layout principal de aplicación similar conceptualmente a:
+
+```text
+┌───────┬───────────────────────────────────────────────┐
+│       │ Empresa                    🔍  +  🔔  👤      │
+│       ├───────────────────────────────────────────────┤
+│ LOGO  │                                               │
+│       │                                               │
+│ 🏠    │                                               │
+│ 💬    │              ÁREA DE TRABAJO                  │
+│ 👥    │                                               │
+│ 💰    │                                               │
+│ 📦    │                                               │
+│ 📣    │                                               │
+│ 🎫    │                                               │
+│ 📊    │                                               │
+│ 🤖    │                                               │
+│       │                                               │
+│ ⚙️    │                                               │
+└───────┴───────────────────────────────────────────────┘
+```
+
+---
+
+# 4. SIDEBAR PRINCIPAL
+
+La navegación desktop debe usar una barra lateral vertical compacta.
+
+Debe contener:
+
+```text
+Logo
+
+Inicio
+
+Inbox
+Clientes
+Leads
+Pipeline
+Ventas
+Productos
+Tickets
+Tareas
+Campañas
+Automatizaciones
+Analítica
+IA
+
+Integraciones
+Configuración
+```
+
+Usar principalmente:
+
+* icono;
+* tooltip;
+* indicador activo;
+* badges numéricos cuando corresponda.
+
+Ejemplo:
+
+```text
+💬  12
+
+```
+
+indica 12 conversaciones pendientes.
+
+La barra podrá expandirse opcionalmente para mostrar los nombres.
+
+---
+
+# 5. TOPBAR
+
+La barra superior tendrá:
+
+```text
+Empresa / Tenant
+Sucursal
+Búsqueda global
+Crear +
+Notificaciones
+Ayuda
+IA
+Avatar usuario
+```
+
+El botón:
+
+```text
++
+```
+
+debe permitir creación rápida:
+
+```text
+Nuevo cliente
+Nueva oportunidad
+Nueva tarea
+Nuevo ticket
+Nueva cotización
+Nueva venta
+```
+
+---
+
+# 6. BÚSQUEDA GLOBAL
+
+Implementar búsqueda universal.
+
+Ejemplo:
+
+```text
+Buscar clientes, ventas, conversaciones...
+```
+
+Resultados:
+
+```text
+CLIENTES
+
+Juan Pérez
+300 123 4567
+
+
+OPORTUNIDADES
+
+Venta Licencias
+$8.500.000
+
+
+CONVERSACIONES
+
+María Gómez
+WhatsApp
+
+
+VENTAS
+
+Factura #V-10922
+```
+
+Debe funcionar con teclado.
+
+Atajo sugerido:
+
+```text
+Ctrl + K
+```
+
+---
+
+# 7. DASHBOARD
+
+El Dashboard debe ser visual y accionable.
+
+NO simplemente llenar la pantalla de gráficas.
+
+Estructura:
+
+```text
+Buenos días, Orlando
+
+Esto está ocurriendo hoy
+```
+
+Indicadores superiores:
+
+```text
+Ventas
+Clientes nuevos
+Oportunidades
+Conversaciones
+Tickets pendientes
+Conversión
+```
+
+Después:
+
+```text
+Pipeline
+```
+
+```text
+Actividad comercial
+```
+
+```text
+Productos
+```
+
+```text
+Canales
+```
+
+```text
+Equipo
+```
+
+Y especialmente:
+
+# Recomendaciones IA
+
+Ejemplo:
+
+```text
+✨ 12 oportunidades requieren seguimiento.
+
+✨ 184 clientes frecuentes llevan
+   más de 60 días sin comprar.
+
+✨ Producto A incrementó 28% sus ventas.
+
+✨ Puedes crear una campaña para
+   423 clientes interesados en Producto X.
+```
+
+Cada recomendación debe tener una acción:
+
+```text
+[ Ver clientes ]
+
+[ Crear campaña ]
+
+[ Revisar oportunidad ]
+```
+
+---
+
+# 8. PIPELINE
+
+Este será uno de los componentes principales.
+
+Implementar Kanban.
+
+Ejemplo:
+
+```text
+NUEVO
+$12.5M
+
+┌──────────────┐
+│ Juan Pérez   │
+│ $2.500.000   │
+│ WhatsApp 🟢  │
+└──────────────┘
+
+
+CONTACTADO
+$25M
+
+┌──────────────┐
+│ Empresa ABC  │
+│ $12.000.000  │
+│ Instagram 🟣 │
+└──────────────┘
+
+
+COTIZACIÓN
+
+
+NEGOCIACIÓN
+
+
+GANADO
+```
+
+Soportar:
+
+* drag & drop;
+* scroll horizontal;
+* filtros;
+* búsqueda;
+* múltiples pipelines;
+* totales por etapa;
+* colores por etapa;
+* responsable;
+* canal;
+* valor;
+* próxima tarea;
+* fecha.
+
+---
+
+# 9. FICHA DE OPORTUNIDAD
+
+NO abrir siempre una pantalla completamente nueva.
+
+En desktop utilizar preferentemente un panel lateral.
+
+Ejemplo:
+
+```text
+PIPELINE                   OPORTUNIDAD
+                           ─────────────────
+                           Empresa ABC
+
+                           $12.500.000
+
+                           Etapa:
+                           Negociación
+
+                           Responsable:
+                           Carlos
+
+                           Contacto:
+                           Juan Pérez
+
+                           WhatsApp
+                           Instagram
+                           Email
+
+                           ─────────────
+
+                           Timeline
+
+                           Hoy
+                           Mensaje WhatsApp
+
+                           Ayer
+                           Cotización enviada
+
+                           15 Ago
+                           Llamada realizada
+```
+
+El usuario debe poder continuar viendo el Pipeline mientras consulta información.
+
+---
+
+# 10. INBOX OMNICANAL
+
+Será una de las pantallas más importantes.
+
+Diseñar en tres columnas:
+
+```text
+┌───────────────┬──────────────────────────┬───────────────────┐
+│ Conversaciones│ Chat                     │ Cliente           │
+│               │                          │                   │
+│ Juan Pérez    │ Juan: Hola              │ Juan Pérez        │
+│ WhatsApp      │                          │ VIP ⭐            │
+│               │ Yo: Buenas tardes       │                   │
+│ María Gómez   │                          │ WhatsApp          │
+│ Instagram     │ Juan: necesito precio   │ Instagram         │
+│               │                          │ Facebook          │
+│ Pedro         │                          │ Email             │
+│ Facebook      │                          │                   │
+│               │                          │ Compras: 14       │
+│               │                          │ $8.200.000        │
+└───────────────┴──────────────────────────┴───────────────────┘
+```
+
+---
+
+# 11. LISTADO DE CONVERSACIONES
+
+Mostrar:
+
+* avatar;
+* cliente;
+* último mensaje;
+* hora;
+* canal;
+* no leído;
+* asesor;
+* prioridad;
+* etiquetas.
+
+Icono visual según canal:
+
+```text
+WhatsApp
+Instagram
+Facebook
+Email
+Web
+```
+
+---
+
+# 12. CHAT
+
+Debe sentirse como una aplicación moderna de mensajería.
+
+Soportar:
+
+```text
+Texto
+Imagen
+Audio
+Documento
+Video
+Ubicación
+Templates
+Notas internas
+```
+
+Composer inferior:
+
+```text
+＋   Escribe un mensaje...     🎤   ✨IA     ➤
+```
+
+---
+
+# 13. IA DENTRO DEL CHAT
+
+Agregar acción:
+
+```text
+✨
+```
+
+Opciones:
+
+```text
+Sugerir respuesta
+Mejorar redacción
+Resumir conversación
+Cambiar tono
+Traducir
+Detectar intención
+Crear oportunidad
+Crear tarea
+```
+
+---
+
+# 14. CLIENTE 360°
+
+La ficha será otro componente fundamental.
+
+Header:
+
+```text
+┌──────────────────────────────────────────────┐
+│ 👤 JUAN PÉREZ                     VIP ⭐     │
+│                                              │
+│ 🟢 WhatsApp  🟣 Instagram  ✉ Email         │
+│                                              │
+│ Asesor: Carlos                               │
+└──────────────────────────────────────────────┘
+```
+
+Indicadores:
+
+```text
+$8.420.000
+Total comprado
+
+23
+Compras
+
+$366.000
+Ticket promedio
+
+10 días
+Última compra
+```
+
+Tabs:
+
+```text
+Resumen
+Conversaciones
+Compras
+Oportunidades
+Cotizaciones
+Tickets
+Tareas
+Archivos
+Actividad
+```
+
+---
+
+# 15. TIMELINE UNIVERSAL
+
+Todos los módulos deben compartir un componente:
+
+```text
+ActivityTimeline
+```
+
+Ejemplo:
+
+```text
+Hoy 10:35
+💬 Mensaje recibido por WhatsApp
+
+Hoy 09:30
+📞 Llamada realizada
+
+Ayer
+📄 Cotización #C-123
+
+12 Ago
+💰 Venta $800.000
+
+10 Ago
+🎫 Ticket cerrado
+```
+
+---
+
+# 16. VENTAS
+
+Crear una vista rápida.
+
+```text
+Ventas
+```
+
+Filtros superiores.
+
+```text
+Hoy
+Semana
+Mes
+Personalizado
+```
+
+KPIs:
+
+```text
+Ventas
+Ingresos
+Ticket promedio
+Clientes
+Margen
+```
+
+Tabla inferior:
+
+```text
+Venta
+Cliente
+Vendedor
+Canal
+Total
+Estado
+Fecha
+```
+
+---
+
+# 17. PRODUCTOS
+
+Dos modos:
+
+```text
+Tabla
+```
+
+y
+
+```text
+Cards
+```
+
+Mostrar:
+
+```text
+Producto
+Precio
+Ventas
+Rotación
+Ingresos
+Tendencia
+```
+
+Etiquetas inteligentes:
+
+```text
+🔥 Alta rotación
+
+⚠ Baja rotación
+
+📈 Creciendo
+
+📉 Disminuyendo
+```
+
+---
+
+# 18. ANALÍTICA DE PRODUCTOS
+
+Debe responder visualmente:
+
+```text
+¿Qué está vendiendo más?
+```
+
+```text
+¿Qué está vendiendo menos?
+```
+
+```text
+¿Qué debo promocionar?
+```
+
+```text
+¿Qué clientes podrían comprarlo?
+```
+
+---
+
+# 19. CAMPAÑAS
+
+Vista:
+
+```text
+Campañas
+```
+
+Cards:
+
+```text
+Reactivación clientes
+WhatsApp
+
+Enviados        2.500
+Leídos          1.932
+Respuestas        480
+Ventas             92
+Ingresos        $35M
+ROI              420%
+```
+
+---
+
+# 20. CREACIÓN DE CAMPAÑA
+
+Usar Wizard.
+
+```text
+1 Público
+
+2 Canal
+
+3 Mensaje
+
+4 Programación
+
+5 Revisión
+
+6 Lanzamiento
+```
+
+Evitar un formulario enorme.
+
+---
+
+# 21. AUTOMATIZACIONES
+
+Construir editor visual.
+
+Ejemplo:
+
+```text
+      ┌────────────────────┐
+      │ Cliente no compra  │
+      │ hace 60 días       │
+      └─────────┬──────────┘
+                ↓
+      ┌────────────────────┐
+      │ Etiquetar INACTIVO │
+      └─────────┬──────────┘
+                ↓
+      ┌────────────────────┐
+      │ Enviar WhatsApp    │
+      └─────────┬──────────┘
+                ↓
+      ┌────────────────────┐
+      │ Crear tarea        │
+      └────────────────────┘
+```
+
+El editor debe permitir:
+
+```text
+Trigger
+Condition
+Action
+Delay
+Branch
+End
+```
+
+---
+
+# 22. TICKETS
+
+Diseñar:
+
+```text
+Lista
+Kanban
+```
+
+Estados:
+
+```text
+Nuevo
+Asignado
+En proceso
+Esperando cliente
+Resuelto
+Cerrado
+```
+
+Cada ticket debe mostrar:
+
+```text
+SLA
+Prioridad
+Cliente
+Canal
+Responsable
+Tiempo abierto
+```
+
+---
+
+# 23. CENTRO DE NOTIFICACIONES
+
+Panel lateral.
+
+```text
+Notificaciones
+
+🔴 Ticket #182 venció SLA
+
+🟢 Juan Pérez respondió WhatsApp
+
+💰 Pago recibido $1.200.000
+
+📈 Nueva oportunidad $8.000.000
+
+✨ IA encontró 24 clientes para reactivar
+```
+
+---
+
+# 24. CONFIGURACIÓN
+
+NO construir una pantalla interminable.
+
+Crear navegación secundaria.
+
+```text
+Configuración
+
+Empresa
+Usuarios
+Roles
+Equipos
+Sucursales
+
+Pipeline
+
+Productos
+
+Canales
+Integraciones
+
+Automatizaciones
+
+IA
+
+Facturación
+Plan
+
+Seguridad
+
+API
+Webhooks
+```
+
+---
+
+# 25. MARKETPLACE DE INTEGRACIONES
+
+Diseñar tarjetas.
+
+```text
+┌────────────────┐
+│ 🟢 WhatsApp    │
+│                │
+│ Meta           │
+│                │
+│ [ Conectar ]   │
+└────────────────┘
+
+┌────────────────┐
+│ Instagram      │
+│                │
+│ Meta           │
+│                │
+│ [ Conectar ]   │
+└────────────────┘
+```
+
+Estados:
+
+```text
+Disponible
+Conectado
+Error
+Requiere autorización
+```
+
+---
+
+# 26. SISTEMA SaaS
+
+Dentro de:
+
+```text
+Configuración → Plan
+```
+
+mostrar:
+
+```text
+PLAN PROFESIONAL
+```
+
+Consumo:
+
+```text
+Usuarios
+8 / 10
+████████░░
+
+Contactos
+31.500 / 50.000
+██████░░░░
+
+Storage
+12 GB / 20 GB
+██████░░░░
+
+IA
+780.000 / 1.000.000
+███████░░░
+```
+
+Acciones:
+
+```text
+Cambiar plan
+Comprar capacidad
+Ver facturas
+Administrar método de pago
+```
+
+---
+
+# 27. LOGIN
+
+Crear una experiencia de login minimalista.
+
+Desktop:
+
+```text
+┌────────────────────────────┬──────────────────────────┐
+│                            │                          │
+│  Área visual de marca      │    Bienvenido           │
+│                            │                          │
+│  CRM inteligente           │    Correo               │
+│  para hacer crecer         │    ___________          │
+│  tu negocio                │                          │
+│                            │    Contraseña            │
+│                            │    ___________ 👁        │
+│                            │                          │
+│                            │    [ Ingresar ]          │
+│                            │                          │
+│                            │    Continuar con Google  │
+│                            │                          │
+│                            │    ¿Olvidó contraseña?   │
+│                            │                          │
+└────────────────────────────┴──────────────────────────┘
+```
+
+Mantener una apariencia:
+
+* limpia;
+* corporativa;
+* moderna;
+* grandes espacios;
+* formulario corto.
+
+---
+
+# 28. LOGIN MULTIEMPRESA
+
+Después de autenticar, si el usuario pertenece a más de una empresa:
+
+```text
+Selecciona una empresa
+
+Empresa ABC
+Administrador
+[ Entrar ]
+
+Empresa XYZ
+Vendedor
+[ Entrar ]
+```
+
+Después:
+
+```text
+tenant_id
+```
+
+queda establecido en el contexto de sesión.
+
+---
+
+# 29. RECUPERACIÓN DE CONTRASEÑA
+
+Flujo:
+
+```text
+Correo
+  ↓
+Código / enlace
+  ↓
+Nueva contraseña
+  ↓
+Confirmación
+```
+
+---
+
+# 30. MFA
+
+Pantalla:
+
+```text
+Verificación de seguridad
+
+Introduce el código de 6 dígitos
+
+[ _ ][ _ ][ _ ][ _ ][ _ ][ _ ]
+
+[ Verificar ]
+```
+
+---
+
+# 31. REGISTRO SaaS
+
+Flujo inicial:
+
+```text
+Crear cuenta
+     ↓
+Datos usuario
+     ↓
+Crear empresa
+     ↓
+Seleccionar plan
+     ↓
+Configurar CRM
+     ↓
+Onboarding
+```
+
+---
+
+# 32. ONBOARDING
+
+Implementar Wizard inicial.
+
+```text
+Bienvenido
+
+Configuremos tu CRM
+```
+
+Pasos:
+
+```text
+1 Empresa
+
+2 Equipo
+
+3 Pipeline
+
+4 Productos
+
+5 WhatsApp
+
+6 Importar clientes
+
+7 Primer automatización
+```
+
+Mostrar progreso:
+
+```text
+████████░░ 70%
+```
+
+---
+
+# 33. LANDING PAGE COMERCIAL
+
+Al completar el producto crear también una web comercial propia.
+
+Debe compartir la misma identidad del CRM.
+
+Estructura:
+
+```text
+Header
+Hero
+Prueba gratuita
+Demostración visual
+Beneficios
+Omnicanal
+IA
+Pipeline
+Automatización
+Ventas
+Analítica
+Integraciones
+Planes
+Casos de uso
+Preguntas frecuentes
+CTA
+Footer
+```
+
+Hero:
+
+```text
+CRM inteligente para convertir
+conversaciones en ventas.
+
+Centraliza clientes, WhatsApp,
+ventas, campañas e IA en una
+sola plataforma.
+
+[ Comenzar gratis ]
+
+[ Ver demostración ]
+```
+
+---
+
+# 34. RESPONSIVE
+
+El CRM debe desarrollarse:
+
+```text
+Desktop First para productividad
++
+Mobile First en componentes críticos
+```
+
+Breakpoints:
+
+```text
+Desktop
+Tablet
+Mobile
+```
+
+---
+
+# 35. TABLET
+
+Tablet debe mantener navegación productiva.
+
+Preferir:
+
+```text
+Sidebar colapsada
++
+Área de trabajo
+```
+
+---
+
+# 36. MÓVIL
+
+NO reducir simplemente la versión desktop.
+
+Crear navegación inferior:
+
+```text
+┌─────────────────────────┐
+│ CRM                 🔔  │
+├─────────────────────────┤
+│                         │
+│       CONTENIDO         │
+│                         │
+├─────────────────────────┤
+│ 🏠  💬  👥  💰  ☰     │
+└─────────────────────────┘
+```
+
+Menú:
+
+```text
+Inicio
+Inbox
+Clientes
+Ventas
+Más
+```
+
+---
+
+# 37. INBOX MÓVIL
+
+Pantalla 1:
+
+```text
+Conversaciones
+```
+
+Selecciona una.
+
+Pantalla 2:
+
+```text
+Chat
+```
+
+Deslizar / botón:
+
+```text
+Información cliente
+```
+
+Pantalla 3:
+
+```text
+Cliente 360°
+```
+
+No utilizar tres columnas en celular.
+
+---
+
+# 38. PIPELINE MÓVIL
+
+Utilizar scroll horizontal:
+
+```text
+← NUEVO → CONTACTADO → COTIZACIÓN →
+```
+
+Cards optimizadas para touch.
+
+---
+
+# 39. PWA
+
+La aplicación será PWA.
+
+Preparar:
+
+```text
+Installable
+Responsive
+Offline básico
+Push notifications
+Service Worker
+Cache
+```
+
+---
+
+# 40. ESTADOS VISUALES
+
+TODOS los componentes deben contemplar:
+
+```text
+Loading
+Empty
+Error
+Success
+Disabled
+Offline
+No permission
+Feature locked
+```
+
+---
+
+# 41. SKELETONS
+
+No utilizar solamente:
+
+```text
+Cargando...
+```
+
+Usar Skeleton UI.
+
+Ejemplo:
+
+```text
+██████████
+██████
+██████████████
+```
+
+---
+
+# 42. EMPTY STATES
+
+Ejemplo:
+
+```text
+Aún no tienes clientes.
+
+Agrega tu primer cliente
+o importa una base existente.
+
+[ Crear cliente ]
+
+[ Importar clientes ]
+```
+
+---
+
+# 43. FEATURE LOCK
+
+Si una función no está incluida en el plan:
+
+```text
+✨ Automatizaciones avanzadas
+
+Disponible en Plan Business.
+
+[ Actualizar plan ]
+```
+
+NO ocultarla completamente.
+
+Esto ayuda a vender módulos superiores.
+
+---
+
+# 44. PERMISOS
+
+Si el usuario no tiene permiso:
+
+```text
+No tienes permisos para realizar esta acción.
+```
+
+Nunca permitir que una restricción dependa solamente del frontend.
+
+Backend debe validar nuevamente.
+
+---
+
+# 45. ACCESIBILIDAD
+
+Todos los componentes deben contemplar:
+
+```text
+Keyboard navigation
+ARIA
+Focus visible
+Contrast
+Screen readers
+Touch targets
+```
+
+---
+
+# 46. PERFORMANCE
+
+Implementar:
+
+```text
+Lazy loading
+Code splitting
+Virtualized lists
+Optimistic UI
+Caching
+Infinite scrolling
+Prefetching
+Skeleton UI
+```
+
+Especialmente para:
+
+```text
+Mensajes
+Clientes
+Pipeline
+Ventas
+Auditoría
+```
+
+---
+
+# 47. COMPONENTES COMPARTIDOS
+
+Crear componentes reutilizables:
+
+```text
+<AppShell />
+
+<Sidebar />
+
+<Topbar />
+
+<GlobalSearch />
+
+<CommandPalette />
+
+<EntityDrawer />
+
+<ActivityTimeline />
+
+<ContactAvatar />
+
+<ChannelIcon />
+
+<StatusBadge />
+
+<MetricCard />
+
+<DataTable />
+
+<KanbanBoard />
+
+<ChatWindow />
+
+<AIActionButton />
+
+<FeatureGuard />
+
+<PermissionGuard />
+
+<EmptyState />
+
+<LoadingSkeleton />
+```
+
+---
+
+# 48. REGLA FUNDAMENTAL
+
+No crear cada módulo como si fuera una aplicación diferente.
+
+Toda la plataforma debe sentirse como:
+
+# UN SOLO PRODUCTO
+
+Debe conservar:
+
+```text
+Tipografía
+Espaciado
+Colores
+Botones
+Inputs
+Drawers
+Modales
+Tablas
+Cards
+Animaciones
+Iconografía
+Navegación
+```
+
+---
+
+# 49. ARQUITECTURA FRONTEND
+
+Mantener organización por features.
+
+```text
+src/
+├── app/
+│
+├── design-system/
+│
+├── features/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── crm/
+│   ├── inbox/
+│   ├── pipeline/
+│   ├── sales/
+│   ├── products/
+│   ├── tickets/
+│   ├── marketing/
+│   ├── automation/
+│   ├── analytics/
+│   ├── ai/
+│   ├── integrations/
+│   └── settings/
+│
+├── shared/
+│
+├── hooks/
+│
+├── services/
+│
+└── routes/
+```
+
+---
+
+# 50. REGLAS DE IMPLEMENTACIÓN
+
+Antes de modificar una pantalla:
+
+1. Analizar funcionalidad actual.
+2. No eliminar funciones existentes.
+3. Identificar componentes reutilizables.
+4. Aplicar Design System.
+5. Verificar permisos.
+6. Verificar multi-tenant.
+7. Verificar responsive.
+8. Verificar tablet.
+9. Verificar móvil.
+10. Verificar accesibilidad.
+11. Verificar performance.
+12. Ejecutar pruebas.
+
+---
+
+# 51. NO HACER
+
+No:
+
+```text
+Reescribir todo el proyecto de una sola vez.
+```
+
+No:
+
+```text
+Eliminar APIs existentes.
+```
+
+No:
+
+```text
+Cambiar contratos backend sin justificación.
+```
+
+No:
+
+```text
+Duplicar componentes.
+```
+
+No:
+
+```text
+Introducir estilos inline indiscriminadamente.
+```
+
+No:
+
+```text
+Copiar código, assets o diseño propietario de Kommo.
+```
+
+---
+
+# 52. ESTRATEGIA DE MIGRACIÓN
+
+Realizar progresivamente:
+
+```text
+Design System
+       ↓
+App Shell
+       ↓
+Login
+       ↓
+Dashboard
+       ↓
+Clientes
+       ↓
+Cliente 360
+       ↓
+Inbox
+       ↓
+Pipeline
+       ↓
+Ventas
+       ↓
+Productos
+       ↓
+Tickets
+       ↓
+Campañas
+       ↓
+Automatizaciones
+       ↓
+Analytics
+       ↓
+IA
+       ↓
+Configuración
+       ↓
+Landing Page
+```
+
+---
+
+# 53. RESULTADO ESPERADO
+
+El CRM final debe sentirse:
+
+```text
+Simple como una app de mensajería
+
+Visual como un Kanban moderno
+
+Potente como un CRM empresarial
+
+Inteligente gracias a IA
+
+Consistente en todos los módulos
+
+Usable desde PC, tablet y celular
+```
+
+Mantener toda la funcionalidad definida durante los 20 sprints, pero unificarla bajo una experiencia visual moderna, rápida, modular y profesional.
+
+Antes de reestructurar cada módulo, presentar:
+
+1. estado actual;
+2. propuesta UX;
+3. componentes afectados;
+4. archivos que serán modificados;
+5. riesgos;
+6. resultado esperado.
+
+Después proceder con la implementación.
+
+
+
+
+A partir del Sprint 10 se incorpora una nueva directriz transversal de UX/UI.
+
+IMPORTANTE:
+
+NO debes detener el Sprint 10 para rediseñar completamente los Sprints 1 al 9.
+
+NO debes eliminar ni alterar funcionalidades existentes.
+
+NO debes copiar código, assets, marca, imágenes, textos o elementos propietarios de Kommo.
+
+Kommo se utilizará exclusivamente como referencia de experiencia de usuario, organización visual, densidad de información y patrones de interacción.
+
+Referencia UX/UI:
+https://es.kommo.com/crm/
+
+OBJETIVO:
+
+A partir de este sprint, todo nuevo frontend debe seguir un Design System único y una arquitectura visual consistente para todo el CRM.
+
+El producto debe evolucionar hacia una experiencia visual caracterizada por:
+
+- sidebar lateral compacta;
+- topbar limpia;
+- navegación rápida;
+- áreas de trabajo amplias;
+- paneles laterales tipo drawer;
+- Kanban para procesos;
+- fichas 360°;
+- inbox de múltiples columnas;
+- componentes de alta densidad pero fáciles de entender;
+- estados visuales claros;
+- diseño SaaS moderno;
+- excelente adaptación a desktop, tablet y celular.
+
+No realizar una copia exacta de Kommo.
+Construir una identidad visual propia.
+
+ANTES DE IMPLEMENTAR EL FRONTEND DEL SPRINT 10:
+
+1. Audita el frontend existente.
+2. Identifica componentes ya creados que puedan reutilizarse.
+3. No dupliques componentes.
+4. Crea o consolida un Design System central.
+5. Crea un AppShell reutilizable.
+6. Define tokens visuales.
+7. Implementa Sidebar.
+8. Implementa Topbar.
+9. Define Drawer estándar.
+10. Define tablas, cards, badges, tabs, inputs y estados.
+11. Mantén compatibilidad con funcionalidades existentes.
+12. Después implementa la interfaz correspondiente al Sprint 10.
+
+ESTRUCTURA SUGERIDA:
+
+apps/web/src/
+    app/
+    design-system/
+        tokens/
+        components/
+        layouts/
+    features/
+        auth/
+        dashboard/
+        crm/
+        inbox/
+        support/
+        sales/
+        marketing/
+        analytics/
+        automation/
+        ai/
+        settings/
+    shared/
+
+CREAR TOKENS PARA:
+
+colors
+typography
+spacing
+border-radius
+shadows
+breakpoints
+z-index
+transitions
+
+CREAR COMPONENTES BASE:
+
+AppShell
+Sidebar
+Topbar
+PageHeader
+Button
+Input
+Select
+Card
+MetricCard
+Badge
+StatusBadge
+Avatar
+Tabs
+Drawer
+Modal
+DataTable
+EmptyState
+LoadingSkeleton
+Toast
+ActivityTimeline
+EntityDrawer
+PermissionGuard
+FeatureGuard
+
+No crear diferentes versiones de estos componentes dentro de cada módulo.
+
+SPRINT 10:
+
+El módulo Tickets y Servicio debe ser el primer módulo nuevo construido completamente bajo esta nueva línea UX/UI.
+
+Debe incluir como mínimo:
+
+Vista Lista
+Vista Kanban
+
+Estados:
+
+Nuevo
+Asignado
+En proceso
+Esperando cliente
+Resuelto
+Cerrado
+
+Cada ticket debe mostrar visualmente:
+
+Número
+Cliente
+Avatar
+Canal de origen
+Asunto
+Prioridad
+Estado
+Responsable
+Equipo
+SLA
+Tiempo abierto
+Última actualización
+
+Al seleccionar un ticket en desktop:
+
+NO navegar inmediatamente a otra página.
+
+Preferir un EntityDrawer lateral con información del ticket.
+
+El usuario debe poder seguir viendo la lista o Kanban detrás.
+
+El panel deberá mostrar:
+
+Información del ticket
+Cliente
+Cliente 360°
+Conversación relacionada
+Responsable
+Prioridad
+Categoría
+SLA
+Timeline
+Comentarios
+Notas internas
+Adjuntos
+Cambios de estado
+Acciones
+
+DISEÑO RESPONSIVE:
+
+Desktop:
+Sidebar + área principal + drawer.
+
+Tablet:
+Sidebar colapsada + área principal + drawer adaptable.
+
+Mobile:
+Bottom navigation o navegación compacta.
+Lista de tickets -> Ticket -> Información cliente.
+
+No intentar mostrar múltiples columnas pequeñas en celular.
+
+ESTADOS OBLIGATORIOS:
+
+loading
+skeleton
+empty
+error
+success
+no-permission
+feature-locked
+offline cuando corresponda
+
+IMPORTANTE:
+
+Desde Sprint 10 en adelante, cada nueva funcionalidad debe utilizar este Design System.
+
+Los Sprints 1 al 9 NO deben ser reescritos ahora.
+
+Se migrarán progresivamente al nuevo Design System cuando sean intervenidos o durante las tareas de consolidación visual.
+
+Sprint 20 deberá realizar la auditoría final de consistencia UX/UI de toda la aplicación.
+
+ANTES DE REALIZAR CAMBIOS:
+
+Entrega primero un informe corto indicando:
+
+- situación actual del frontend;
+- componentes existentes;
+- componentes que pueden reutilizarse;
+- componentes nuevos necesarios;
+- archivos que serán afectados;
+- riesgo de regresiones;
+- plan de implementación.
+
+Después de ese análisis procede con la implementación.
+
+No modifiques backend ni contratos API únicamente por razones visuales.
+
+Mantén todas las reglas del CRM_MASTER_SPEC_OPENCODE.md.
+
+El Sprint 10 continúa siendo el sprint activo.
+No avances al Sprint 11.

@@ -54,6 +54,11 @@ model Tenant {
   webhookInbox   IntegrationWebhookInbox[]
   webhookOutbox  IntegrationWebhookOutbox[]
   templates      MessageTemplate[]
+  syncJobs       IntegrationSyncJob[]
+  ticketCategories TicketCategory[]
+  slaPolicies    SlaPolicy[]
+  tickets        Ticket[]
+  satisfactionSurveys SatisfactionSurvey[]
 
   @@index([status])
   @@index([createdAt])
@@ -146,6 +151,7 @@ model User {
   userBranches      UserBranch[]
   apiKeys           ApiKey[]
   contactAssignments ContactAssignment[]
+  ticketAssignments TicketAssignment[]
 
   @@index([email])
   @@index([status])
@@ -471,6 +477,7 @@ model Company {
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contactCompanyRelations ContactCompanyRelation[]
   activities Activity[]
+  tickets    Ticket[]
 
   @@index([tenantId])
   @@index([tenantId, name])
@@ -521,6 +528,7 @@ model Contact {
   channelIdentities ContactChannelIdentity[]
   conversationsAsParticipant ConversationParticipant[]
   conversations Conversation[]
+  tickets      Ticket[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -1122,4 +1130,203 @@ model MessageTemplate {
   @@index([tenantId])
   @@index([tenantId, category])
   @@map("message_templates")
+}
+
+model IntegrationSyncJob {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  channelType  String   @map("channel_type") @db.VarChar(30) // INSTAGRAM, FACEBOOK, EMAIL
+  connectionId String?  @map("connection_id") @db.Uuid
+  syncType     String   @map("sync_type") @db.VarChar(30) // MESSAGES, CONTACTS, MEDIA, FULL
+  status       String   @default("PENDING") @db.VarChar(20) // PENDING, RUNNING, COMPLETED, FAILED
+  startedAt    DateTime? @map("started_at") @db.Timestamptz()
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz()
+  processedCount Int    @default(0) @map("processed_count")
+  errorCount   Int      @default(0) @map("error_count")
+  errorMessage String?  @map("error_message") @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, channelType])
+  @@index([status])
+  @@map("integration_sync_jobs")
+}
+
+// ─── TICKETING ────────────────────────────────────────
+
+model TicketCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  color       String?  @db.VarChar(7)
+  icon        String?  @db.VarChar(50)
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("ticket_categories")
+}
+
+model SlaPolicy {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  name         String   @db.VarChar(100)
+  priority     String   @db.VarChar(10) // LOW, NORMAL, HIGH, URGENT
+  responseTime Int      @map("response_time") // minutes
+  resolutionTime Int    @map("resolution_time") // minutes
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([tenantId, priority])
+  @@index([tenantId])
+  @@map("sla_policies")
+}
+
+model Ticket {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  contactId     String?  @map("contact_id") @db.Uuid
+  companyId     String?  @map("company_id") @db.Uuid
+  categoryId    String?  @map("category_id") @db.Uuid
+  slaPolicyId   String?  @map("sla_policy_id") @db.Uuid
+  subject       String   @db.VarChar(250)
+  description   String?  @db.Text
+  priority      String   @default("NORMAL") @db.VarChar(10) // LOW, NORMAL, HIGH, URGENT
+  status        String   @default("OPEN") @db.VarChar(20) // OPEN, IN_PROGRESS, WAITING, RESOLVED, CLOSED
+  channel       String?  @db.VarChar(30) // WHATSAPP, EMAIL, PHONE, WEB, API
+  source        String?  @db.VarChar(50) // MANUAL, WEBHOOK, API, IMPORT
+  slaResponseAt DateTime? @map("sla_response_at") @db.Timestamptz()
+  slaResolveAt  DateTime? @map("sla_resolve_at") @db.Timestamptz()
+  slaBreached   Boolean  @default(false) @map("sla_breached")
+  firstResponseAt DateTime? @map("first_response_at") @db.Timestamptz()
+  resolvedAt    DateTime? @map("resolved_at") @db.Timestamptz()
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz()
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact    Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company    Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  category   TicketCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  slaPolicy  SlaPolicy? @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  comments   TicketComment[]
+  assignments TicketAssignment[]
+  statusHistory TicketStatusHistory[]
+  slaEvents  TicketSlaEvent[]
+  satisfactionSurvey SatisfactionSurvey?
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([tenantId, status])
+  @@index([tenantId, priority])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  content   String   @db.Text
+  isInternal Boolean @default(false) @map("is_internal")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([tenantId])
+  @@map("ticket_comments")
+}
+
+model TicketAssignment {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  assignedBy String? @map("assigned_by") @db.Uuid
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([ticketId, userId])
+  @@index([ticketId])
+  @@index([userId])
+  @@index([tenantId])
+  @@map("ticket_assignments")
+}
+
+model TicketStatusHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  fromStatus String?  @map("from_status") @db.VarChar(20)
+  toStatus   String   @map("to_status") @db.VarChar(20)
+  changedBy  String?  @map("changed_by") @db.Uuid
+  reason     String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([ticketId, createdAt])
+  @@map("ticket_status_history")
+}
+
+model TicketSlaEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(30) // RESPONSE_DUE, RESOLUTION_DUE, BREACHED, PAUSED, RESUMED
+  dueAt      DateTime @map("due_at") @db.Timestamptz()
+  occurredAt DateTime? @map("occurred_at") @db.Timestamptz()
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([tenantId, eventType])
+  @@index([dueAt])
+  @@map("ticket_sla_events")
+}
+
+model SatisfactionSurvey {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  ticketId   String   @unique @map("ticket_id") @db.Uuid
+  contactId  String   @map("contact_id") @db.Uuid
+  rating     Int      // 1-5
+  comment    String?  @db.Text
+  nps        Int?     // -100 to 100
+  sentAt     DateTime @default(now()) @map("sent_at") @db.Timestamptz()
+  respondedAt DateTime? @map("responded_at") @db.Timestamptz()
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticket  Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([contactId])
+  @@map("satisfaction_surveys")
 }

@@ -13,6 +13,7 @@ import { Client360Module } from './client360/client360.module';
 import { IdentityModule } from './identity/identity.module';
 import { OmnichannelModule } from './omnichannel/omnichannel.module';
 import { IntegrationModule } from './integration/integration.module';
+import { TicketingModule } from './ticketing/ticketing.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -32,6 +33,7 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     IdentityModule,
     OmnichannelModule,
     IntegrationModule,
+    TicketingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

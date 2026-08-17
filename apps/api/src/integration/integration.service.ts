@@ -348,13 +348,117 @@ export class IntegrationService {
   // ─── STATS ──────────────────────────────────────────
 
   async getIntegrationStats(tenantId: string) {
-    const [connections, pendingOutbox, templates, recentDeliveryEvents] = await Promise.all([
+    const [connections, pendingOutbox, templates, recentDeliveryEvents, syncJobs] = await Promise.all([
       this.prisma.integrationConnection.count({ where: { tenantId } }),
       this.prisma.integrationWebhookOutbox.count({ where: { tenantId, status: 'PENDING' } }),
       this.prisma.messageTemplate.count({ where: { tenantId } }),
       this.prisma.messageDeliveryEvent.count({ where: { tenantId } }),
+      this.prisma.integrationSyncJob.count({ where: { tenantId } }),
     ]);
 
-    return { connections, pendingOutbox, templates, recentDeliveryEvents };
+    return { connections, pendingOutbox, templates, recentDeliveryEvents, syncJobs };
+  }
+
+  // ─── SYNC JOBS ──────────────────────────────────────
+
+  async createSyncJob(tenantId: string, channelType: string, connectionId?: string, syncType: string = 'FULL') {
+    return this.prisma.integrationSyncJob.create({
+      data: {
+        tenantId,
+        channelType,
+        connectionId: connectionId || null,
+        syncType,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async findSyncJobs(tenantId: string, channelType?: string) {
+    const where: Prisma.IntegrationSyncJobWhereInput = { tenantId };
+    if (channelType) where.channelType = channelType;
+
+    return this.prisma.integrationSyncJob.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async findSyncJobById(tenantId: string, id: string) {
+    const job = await this.prisma.integrationSyncJob.findFirst({
+      where: { id, tenantId },
+    });
+    if (!job) throw new NotFoundException(`Sync job ${id} no encontrado`);
+    return job;
+  }
+
+  async startSyncJob(tenantId: string, id: string) {
+    await this.findSyncJobById(tenantId, id);
+    return this.prisma.integrationSyncJob.update({
+      where: { id },
+      data: { status: 'RUNNING', startedAt: new Date() },
+    });
+  }
+
+  async completeSyncJob(tenantId: string, id: string, processedCount: number, errorCount: number = 0) {
+    await this.findSyncJobById(tenantId, id);
+    return this.prisma.integrationSyncJob.update({
+      where: { id },
+      data: {
+        status: errorCount > 0 ? 'FAILED' : 'COMPLETED',
+        completedAt: new Date(),
+        processedCount,
+        errorCount,
+      },
+    });
+  }
+
+  async failSyncJob(tenantId: string, id: string, errorMessage: string) {
+    await this.findSyncJobById(tenantId, id);
+    return this.prisma.integrationSyncJob.update({
+      where: { id },
+      data: {
+        status: 'FAILED',
+        completedAt: new Date(),
+        errorMessage,
+      },
+    });
+  }
+
+  // ─── CHANNEL ADAPTERS ───────────────────────────────
+
+  async processChannelInbound(tenantId: string, channelType: string, payload: any) {
+    const { InstagramAdapter, MessengerAdapter, EmailAdapter } = require('./adapters/channel.adapters');
+
+    const adapters: Record<string, any> = {
+      INSTAGRAM: new InstagramAdapter(),
+      FACEBOOK: new MessengerAdapter(),
+      EMAIL: new EmailAdapter(),
+    };
+
+    const adapter = adapters[channelType];
+    if (!adapter) {
+      this.logger.warn(`No adapter for channel type: ${channelType}`);
+      return;
+    }
+
+    await adapter.handleInbound(tenantId, payload);
+  }
+
+  async sendViaChannel(tenantId: string, channelType: string, config: any, payload: any) {
+    const { InstagramAdapter, MessengerAdapter, EmailAdapter } = require('./adapters/channel.adapters');
+
+    const adapters: Record<string, any> = {
+      INSTAGRAM: new InstagramAdapter(),
+      FACEBOOK: new MessengerAdapter(),
+      EMAIL: new EmailAdapter(),
+    };
+
+    const adapter = adapters[channelType];
+    if (!adapter) {
+      throw new BadRequestException(`No adapter for channel type: ${channelType}`);
+    }
+
+    return adapter.sendOutbound(tenantId, config, payload);
   }
 }
