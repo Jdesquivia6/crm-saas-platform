@@ -9,6 +9,7 @@ import { TicketList } from './features/tickets';
 import { LeadList } from './features/leads';
 import { PipelineBoard } from './features/pipeline';
 import { OpportunityList } from './features/opportunities';
+import { ProductList } from './features/products';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
       <Route path="/app/leads" element={<AppShell title="Leads"><LeadList /></AppShell>} />
       <Route path="/app/pipeline" element={<AppShell title="Pipeline"><PipelineBoard /></AppShell>} />
       <Route path="/app/opportunities" element={<AppShell title="Oportunidades"><OpportunityList /></AppShell>} />
+      <Route path="/app/products" element={<AppShell title="Productos"><ProductList /></AppShell>} />
       <Route path="/app/inbox" element={<AppShell title="Inbox"><div>Inbox - Proximamente</div></AppShell>} />
       <Route path="/app/contacts" element={<AppShell title="Contactos"><div>Contactos - Proximamente</div></AppShell>} />
       <Route path="/app/settings" element={<AppShell title="Configuracion"><div>Configuracion - Proximamente</div></AppShell>} />

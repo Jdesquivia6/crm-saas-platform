@@ -63,6 +63,11 @@ model Tenant {
   leads          Lead[]
   pipelines      Pipeline[]
   opportunities  Opportunity[]
+  productCategories ProductCategory[]
+  products       Product[]
+  taxes          Tax[]
+  priceLists     PriceList[]
+  opportunityItems OpportunityItem[]
 
   @@index([status])
   @@index([createdAt])
@@ -1490,6 +1495,7 @@ model Opportunity {
   assignee   User?                     @relation(fields: [assignedTo], references: [id])
   contacts   OpportunityContact[]
   stageHistory OpportunityStageHistory[]
+  items      OpportunityItem[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1535,4 +1541,173 @@ model OpportunityStageHistory {
   @@index([opportunityId])
   @@index([opportunityId, createdAt])
   @@map("opportunity_stage_history")
+}
+
+// ─── PRODUCTOS Y SERVICIOS (SPRINT 12) ─────────────────────
+
+model ProductCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  parentId    String?  @map("parent_id") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
+  parent   ProductCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ProductCategory[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("product_categories")
+}
+
+model Product {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  sku             String?  @db.VarChar(50)
+  name            String   @db.VarChar(200)
+  description     String?  @db.Text
+  categoryId      String?  @map("category_id") @db.Uuid
+  type            String   @default("PRODUCT") @db.VarChar(30) // PRODUCT, SERVICE, DIGITAL
+  unit            String   @default("UNIT") @db.VarChar(20) // UNIT, HOUR, DAY, MONTH, KG, METER
+  taxIncluded     Boolean  @default(true) @map("tax_included")
+  isActive        Boolean  @default(true) @map("is_active")
+  imageUrl        String?  @map("image_url") @db.VarChar(500)
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+  variants   ProductVariant[]
+  taxes      ProductTax[]
+  priceItems PriceListItem[]
+  opportunityItems OpportunityItem[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  sku       String?  @db.VarChar(50)
+  name      String   @db.VarChar(200)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, sku])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model Tax {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String   @db.VarChar(100) // IVA, ICE, IVA 5%, IVA 19%
+  rate      Decimal  @db.Decimal(5, 2) // 0.00 - 100.00
+  type      String   @default("PERCENTAGE") @db.VarChar(20) // PERCENTAGE, FIXED
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant       @relation(fields: [tenantId], references: [id])
+  products ProductTax[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("taxes")
+}
+
+model ProductTax {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  taxId     String   @map("tax_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tax     Tax     @relation(fields: [taxId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, taxId])
+  @@index([productId])
+  @@index([taxId])
+  @@map("product_taxes")
+}
+
+model PriceList {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  currencyCode String  @default("COP") @map("currency_code") @db.VarChar(3)
+  isDefault   Boolean  @default(false) @map("is_default")
+  isActive    Boolean  @default(true) @map("is_active")
+  validFrom   DateTime? @map("valid_from") @db.Timestamptz()
+  validUntil  DateTime? @map("valid_until") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id])
+  items  PriceListItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("price_lists")
+}
+
+model PriceListItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  priceListId  String   @map("price_list_id") @db.Uuid
+  productId    String   @map("product_id") @db.Uuid
+  variantId    String?  @map("variant_id") @db.Uuid
+  unitPrice    Decimal  @db.Decimal(14, 2)
+  minQuantity  Int      @default(1) @map("min_quantity")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  priceList PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([priceListId, productId, variantId])
+  @@index([priceListId])
+  @@index([productId])
+  @@map("price_list_items")
+}
+
+model OpportunityItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  opportunityId String   @map("opportunity_id") @db.Uuid
+  productId     String?  @map("product_id") @db.Uuid
+  variantId     String?  @map("variant_id") @db.Uuid
+  description   String   @db.VarChar(500)
+  quantity      Decimal  @db.Decimal(10, 2)
+  unitPrice     Decimal  @db.Decimal(14, 2)
+  discount      Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount     Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  totalAmount   Decimal  @db.Decimal(14, 2) @map("total_amount")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  product     Product?    @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([opportunityId])
+  @@index([productId])
+  @@map("opportunity_items")
 }
