@@ -68,6 +68,16 @@ model Tenant {
   taxes          Tax[]
   priceLists     PriceList[]
   opportunityItems OpportunityItem[]
+  quotes         Quote[]
+  orders         Order[]
+  sales          Sale[]
+  invoices       Invoice[]
+  quoteItems     QuoteItem[]
+  quoteStatusHistory QuoteStatusHistory[]
+  orderItems     OrderItem[]
+  orderStatusHistory OrderStatusHistory[]
+  saleItems      SaleItem[]
+  invoiceItems   InvoiceItem[]
 
   @@index([status])
   @@index([createdAt])
@@ -163,6 +173,9 @@ model User {
   ticketAssignments TicketAssignment[]
   assignedLeads      Lead[]
   assignedOpportunities Opportunity[]
+  assignedQuotes   Quote[]
+  assignedOrders   Order[]
+  assignedSales    Sale[]
 
   @@index([email])
   @@index([status])
@@ -491,6 +504,10 @@ model Company {
   tickets    Ticket[]
   leads      Lead[]
   opportunities Opportunity[]
+  quotes     Quote[]
+  orders     Order[]
+  sales      Sale[]
+  invoices   Invoice[]
 
   @@index([tenantId])
   @@index([tenantId, name])
@@ -545,6 +562,10 @@ model Contact {
   leads        Lead[]
   opportunitiesAsContact OpportunityContact[]
   ownedOpportunities Opportunity[]
+  quotes     Quote[]
+  orders     Order[]
+  sales      Sale[]
+  invoices   Invoice[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -1496,6 +1517,9 @@ model Opportunity {
   contacts   OpportunityContact[]
   stageHistory OpportunityStageHistory[]
   items      OpportunityItem[]
+  quotes     Quote[]
+  orders     Order[]
+  sales      Sale[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1587,6 +1611,10 @@ model Product {
   taxes      ProductTax[]
   priceItems PriceListItem[]
   opportunityItems OpportunityItem[]
+  quoteItems QuoteItem[]
+  orderItems OrderItem[]
+  saleItems  SaleItem[]
+  invoiceItems InvoiceItem[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -1710,4 +1738,318 @@ model OpportunityItem {
   @@index([opportunityId])
   @@index([productId])
   @@map("opportunity_items")
+}
+
+// ─── COTIZACIONES, PEDIDOS Y VENTAS (SPRINT 13) ────────────
+
+model Quote {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  number          String   @db.VarChar(30)
+  opportunityId   String?  @map("opportunity_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  assignedTo      String?  @map("assigned_to") @db.Uuid
+  status          String   @default("DRAFT") @db.VarChar(30) // DRAFT, SENT, APPROVED, REJECTED, EXPIRED
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  subtotal        Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2) @map("total_amount")
+  notes           String?  @db.Text
+  validUntil      DateTime? @map("valid_until") @db.Timestamptz()
+  sentAt          DateTime? @map("sent_at") @db.Timestamptz()
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz()
+  rejectedAt      DateTime? @map("rejected_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  contact     Contact?    @relation(fields: [contactId], references: [id])
+  company     Company?    @relation(fields: [companyId], references: [id])
+  assignee    User?       @relation(fields: [assignedTo], references: [id])
+  items       QuoteItem[]
+  history     QuoteStatusHistory[]
+  orders      Order[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([createdAt])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  quoteId     String   @map("quote_id") @db.Uuid
+  productId   String?  @map("product_id") @db.Uuid
+  variantId   String?  @map("variant_id") @db.Uuid
+  description String   @db.VarChar(500)
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discount    Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  totalAmount Decimal  @db.Decimal(14, 2) @map("total_amount")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@index([productId])
+  @@map("quote_items")
+}
+
+model QuoteStatusHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  quoteId   String   @map("quote_id") @db.Uuid
+  fromStatus String? @map("from_status") @db.VarChar(30)
+  toStatus  String   @map("to_status") @db.VarChar(30)
+  changedBy String?  @map("changed_by") @db.Uuid
+  reason    String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  quote  Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@map("quote_status_history")
+}
+
+model Order {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  number          String   @db.VarChar(30)
+  quoteId         String?  @map("quote_id") @db.Uuid
+  opportunityId   String?  @map("opportunity_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  assignedTo      String?  @map("assigned_to") @db.Uuid
+  status          String   @default("PENDING") @db.VarChar(30) // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  subtotal        Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2) @map("total_amount")
+  notes           String?  @db.Text
+  confirmedAt     DateTime? @map("confirmed_at") @db.Timestamptz()
+  shippedAt       DateTime? @map("shipped_at") @db.Timestamptz()
+  deliveredAt     DateTime? @map("delivered_at") @db.Timestamptz()
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz()
+  cancelReason    String?  @map("cancel_reason") @db.VarChar(500)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  quote       Quote?      @relation(fields: [quoteId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  contact     Contact?    @relation(fields: [contactId], references: [id])
+  company     Company?    @relation(fields: [companyId], references: [id])
+  assignee    User?       @relation(fields: [assignedTo], references: [id])
+  items       OrderItem[]
+  history     OrderStatusHistory[]
+  sales       Sale[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([quoteId])
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  orderId     String   @map("order_id") @db.Uuid
+  productId   String?  @map("product_id") @db.Uuid
+  variantId   String?  @map("variant_id") @db.Uuid
+  description String   @db.VarChar(500)
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discount    Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  totalAmount Decimal  @db.Decimal(14, 2) @map("total_amount")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  fromStatus String? @map("from_status") @db.VarChar(30)
+  toStatus  String   @map("to_status") @db.VarChar(30)
+  changedBy String?  @map("changed_by") @db.Uuid
+  reason    String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model Sale {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  number          String   @db.VarChar(30)
+  orderId         String?  @map("order_id") @db.Uuid
+  opportunityId   String?  @map("opportunity_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  assignedTo      String?  @map("assigned_to") @db.Uuid
+  status          String   @default("PENDING") @db.VarChar(30) // PENDING, COMPLETED, CANCELLED
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  subtotal        Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2) @map("total_amount")
+  notes           String?  @db.Text
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  order       Order?      @relation(fields: [orderId], references: [id])
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id])
+  contact     Contact?    @relation(fields: [contactId], references: [id])
+  company     Company?    @relation(fields: [companyId], references: [id])
+  assignee    User?       @relation(fields: [assignedTo], references: [id])
+  items       SaleItem[]
+  invoices    Invoice[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  saleId      String   @map("sale_id") @db.Uuid
+  productId   String?  @map("product_id") @db.Uuid
+  variantId   String?  @map("variant_id") @db.Uuid
+  description String   @db.VarChar(500)
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discount    Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  totalAmount Decimal  @db.Decimal(14, 2) @map("total_amount")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model Invoice {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  number          String   @db.VarChar(30)
+  saleId          String?  @map("sale_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  status          String   @default("DRAFT") @db.VarChar(30) // DRAFT, SENT, PAID, OVERDUE, CANCELLED
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  subtotal        Decimal  @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  totalAmount     Decimal  @db.Decimal(14, 2) @map("total_amount")
+  paidAmount      Decimal  @default(0) @map("paid_amount") @db.Decimal(14, 2)
+  notes           String?  @db.Text
+  dueDate         DateTime? @map("due_date") @db.Timestamptz()
+  sentAt          DateTime? @map("sent_at") @db.Timestamptz()
+  paidAt          DateTime? @map("paid_at") @db.Timestamptz()
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  sale      Sale?     @relation(fields: [saleId], references: [id])
+  contact   Contact?  @relation(fields: [contactId], references: [id])
+  company   Company?  @relation(fields: [companyId], references: [id])
+  items     InvoiceItem[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([saleId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  invoiceId   String   @map("invoice_id") @db.Uuid
+  productId   String?  @map("product_id") @db.Uuid
+  variantId   String?  @map("variant_id") @db.Uuid
+  description String   @db.VarChar(500)
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(14, 2)
+  discount    Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  totalAmount Decimal  @db.Decimal(14, 2) @map("total_amount")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@index([productId])
+  @@map("invoice_items")
 }

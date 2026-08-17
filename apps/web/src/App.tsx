@@ -10,6 +10,10 @@ import { LeadList } from './features/leads';
 import { PipelineBoard } from './features/pipeline';
 import { OpportunityList } from './features/opportunities';
 import { ProductList } from './features/products';
+import { QuoteList } from './features/quotes';
+import { OrderList } from './features/orders';
+import { SaleList } from './features/sales';
+import { InvoiceList } from './features/invoices';
 
 function App() {
   return (
@@ -25,6 +29,10 @@ function App() {
       <Route path="/app/pipeline" element={<AppShell title="Pipeline"><PipelineBoard /></AppShell>} />
       <Route path="/app/opportunities" element={<AppShell title="Oportunidades"><OpportunityList /></AppShell>} />
       <Route path="/app/products" element={<AppShell title="Productos"><ProductList /></AppShell>} />
+      <Route path="/app/quotes" element={<AppShell title="Cotizaciones"><QuoteList /></AppShell>} />
+      <Route path="/app/orders" element={<AppShell title="Pedidos"><OrderList /></AppShell>} />
+      <Route path="/app/sales" element={<AppShell title="Ventas"><SaleList /></AppShell>} />
+      <Route path="/app/invoices" element={<AppShell title="Facturas"><InvoiceList /></AppShell>} />
       <Route path="/app/inbox" element={<AppShell title="Inbox"><div>Inbox - Proximamente</div></AppShell>} />
       <Route path="/app/contacts" element={<AppShell title="Contactos"><div>Contactos - Proximamente</div></AppShell>} />
       <Route path="/app/settings" element={<AppShell title="Configuracion"><div>Configuracion - Proximamente</div></AppShell>} />

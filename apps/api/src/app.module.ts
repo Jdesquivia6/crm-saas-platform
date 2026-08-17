@@ -18,6 +18,10 @@ import { LeadsModule } from './leads/leads.module';
 import { PipelinesModule } from './pipelines/pipelines.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { ProductsModule } from './products/products.module';
+import { QuotesModule } from './quotes/quotes.module';
+import { OrdersModule } from './orders/orders.module';
+import { SalesModule } from './sales/sales.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -42,6 +46,10 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     PipelinesModule,
     OpportunitiesModule,
     ProductsModule,
+    QuotesModule,
+    OrdersModule,
+    SalesModule,
+    InvoicesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
