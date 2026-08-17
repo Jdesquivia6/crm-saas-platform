@@ -78,6 +78,11 @@ model Tenant {
   orderStatusHistory OrderStatusHistory[]
   saleItems      SaleItem[]
   invoiceItems   InvoiceItem[]
+  providerAccounts ProviderAccount[]
+  paymentIntents PaymentIntent[]
+  paymentLinks   PaymentLink[]
+  paymentTransactions PaymentTransaction[]
+  refunds        Refund[]
 
   @@index([status])
   @@index([createdAt])
@@ -566,6 +571,7 @@ model Contact {
   orders     Order[]
   sales      Sale[]
   invoices   Invoice[]
+  paymentIntents PaymentIntent[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -2017,6 +2023,7 @@ model Invoice {
   contact   Contact?  @relation(fields: [contactId], references: [id])
   company   Company?  @relation(fields: [companyId], references: [id])
   items     InvoiceItem[]
+  paymentIntents PaymentIntent[]
 
   @@unique([tenantId, number])
   @@index([tenantId])
@@ -2052,4 +2059,153 @@ model InvoiceItem {
   @@index([invoiceId])
   @@index([productId])
   @@map("invoice_items")
+}
+
+// ─── PAYMENT SERVICE (SPRINT 14) ───────────────────────────
+
+model ProviderAccount {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  provider        String   @db.VarChar(50) // STRIPE, PAYPAL, MERCADOPAGO, BANK
+  providerUserId  String?  @map("provider_user_id") @db.VarChar(200)
+  accountName     String   @map("account_name") @db.VarChar(150)
+  isActive        Boolean  @default(true) @map("is_active")
+  config          Json?
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  intents  PaymentIntent[]
+  links    PaymentLink[]
+
+  @@unique([tenantId, provider, providerUserId])
+  @@index([tenantId])
+  @@map("provider_accounts")
+}
+
+model PaymentIntent {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  providerAccountId   String?  @map("provider_account_id") @db.Uuid
+  invoiceId           String?  @map("invoice_id") @db.Uuid
+  contactId           String?  @map("contact_id") @db.Uuid
+  number              String   @db.VarChar(30)
+  status              String   @default("PENDING") @db.VarChar(30) // PENDING, PROCESSING, SUCCEEDED, FAILED, CANCELLED, EXPIRED
+  currencyCode        String   @default("COP") @map("currency_code") @db.VarChar(3)
+  amount              Decimal  @db.Decimal(14, 2)
+  amountReceived      Decimal  @default(0) @map("amount_received") @db.Decimal(14, 2)
+  amountRefunded      Decimal  @default(0) @map("amount_refunded") @db.Decimal(14, 2)
+  providerRef         String?  @map("provider_ref") @db.VarChar(200)
+  paymentMethod       String?  @map("payment_method") @db.VarChar(50) // CARD, BANK_TRANSFER, CASH, PSE, NEQUI, DAVIPLATA
+  description         String?  @db.VarChar(500)
+  failureReason       String?  @map("failure_reason") @db.VarChar(500)
+  metadata            Json?
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz()
+  succeededAt         DateTime? @map("succeeded_at") @db.Timestamptz()
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant            Tenant            @relation(fields: [tenantId], references: [id])
+  providerAccount   ProviderAccount?  @relation(fields: [providerAccountId], references: [id])
+  invoice           Invoice?          @relation(fields: [invoiceId], references: [id])
+  contact           Contact?         @relation(fields: [contactId], references: [id])
+  transactions      PaymentTransaction[]
+  refunds           Refund[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([providerAccountId])
+  @@index([invoiceId])
+  @@index([contactId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payment_intents")
+}
+
+model PaymentLink {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  providerAccountId String?  @map("provider_account_id") @db.Uuid
+  number            String   @db.VarChar(30)
+  status            String   @default("ACTIVE") @db.VarChar(30) // ACTIVE, INACTIVE, EXPIRED
+  currencyCode      String   @default("COP") @map("currency_code") @db.VarChar(3)
+  amount            Decimal  @db.Decimal(14, 2)
+  description       String?  @db.VarChar(500)
+  url               String?  @db.VarChar(500)
+  paymentCount      Int      @default(0) @map("payment_count")
+  maxPayments       Int?     @map("max_payments")
+  expiresAt         DateTime? @map("expires_at") @db.Timestamptz()
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  providerAccount ProviderAccount? @relation(fields: [providerAccountId], references: [id])
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([providerAccountId])
+  @@map("payment_links")
+}
+
+model PaymentTransaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  intentId        String   @map("intent_id") @db.Uuid
+  type            String   @db.VarChar(30) // AUTHORIZATION, CAPTURE, TRANSFER, FEE
+  status          String   @default("PENDING") @db.VarChar(30) // PENDING, SUCCEEDED, FAILED
+  amount          Decimal  @db.Decimal(14, 2)
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  providerRef     String?  @map("provider_ref") @db.VarChar(200)
+  feeAmount       Decimal? @map("fee_amount") @db.Decimal(14, 2)
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  intent PaymentIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([intentId])
+  @@map("payment_transactions")
+}
+
+model Refund {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  intentId        String   @map("intent_id") @db.Uuid
+  number          String   @db.VarChar(30)
+  status          String   @default("PENDING") @db.VarChar(30) // PENDING, SUCCEEDED, FAILED, CANCELLED
+  amount          Decimal  @db.Decimal(14, 2)
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  reason          String?  @db.VarChar(500)
+  providerRef     String?  @map("provider_ref") @db.VarChar(200)
+  metadata        Json?
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  intent PaymentIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([intentId])
+  @@map("refunds")
+}
+
+model IdempotencyKey {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  key         String   @db.VarChar(200)
+  endpoint    String   @db.VarChar(200)
+  statusCode  Int      @map("status_code")
+  response    Json
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([tenantId, key, endpoint])
+  @@index([tenantId])
+  @@index([key, endpoint])
+  @@map("idempotency_keys")
 }
