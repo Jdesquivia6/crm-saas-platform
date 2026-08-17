@@ -1,0 +1,88 @@
+export const colors = {
+  brand: {
+    navy: '#100649',
+    primary: '#5B4FE9',
+    secondary: '#7367F0',
+    lavender: '#EAE5FF',
+    soft: '#F5F2FF',
+  },
+  primary: {
+    50: '#F5F2FF',
+    100: '#EAE5FF',
+    200: '#D4CAFE',
+    300: '#B5A7FC',
+    400: '#9486FA',
+    500: '#7367F0',
+    600: '#5B4FE9',
+    700: '#4A3DD4',
+    800: '#3A2FB3',
+    900: '#100649',
+  },
+  neutral: {
+    0: '#FFFFFF',
+    50: '#F8F7FC',
+    100: '#F3F1F8',
+    200: '#E7E5EE',
+    300: '#D6D3DF',
+    400: '#9B98A7',
+    500: '#706C83',
+    600: '#5A5670',
+    700: '#403D52',
+    800: '#2A2740',
+    900: '#16112E',
+  },
+  background: {
+    default: '#FFFFFF',
+    soft: '#F8F7FC',
+  },
+  surface: {
+    default: '#FFFFFF',
+    alt: '#F8F7FC',
+  },
+  text: {
+    primary: '#16112E',
+    secondary: '#706C83',
+    muted: '#9B98A7',
+  },
+  border: {
+    default: '#E7E5EE',
+    strong: '#D6D3DF',
+  },
+  status: {
+    OPEN: '#4776E6',
+    IN_PROGRESS: '#D98C00',
+    WAITING: '#7367F0',
+    RESOLVED: '#198754',
+    CLOSED: '#9B98A7',
+  },
+  priority: {
+    LOW: '#9B98A7',
+    NORMAL: '#4776E6',
+    HIGH: '#D98C00',
+    URGENT: '#D9455F',
+  },
+  channels: {
+    whatsapp: '#25D366',
+    instagram: '#E1306C',
+    facebook: '#1877F2',
+    email: '#706C83',
+    phone: '#706C83',
+    web: '#5B4FE9',
+  },
+  success: {
+    main: '#198754',
+    soft: '#E8F7EF',
+  },
+  warning: {
+    main: '#D98C00',
+    soft: '#FFF7DF',
+  },
+  danger: {
+    main: '#D9455F',
+    soft: '#FDECEF',
+  },
+  info: {
+    main: '#4776E6',
+    soft: '#EEF3FF',
+  },
+};

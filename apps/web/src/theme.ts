@@ -1,40 +1,80 @@
 import { createTheme } from '@mui/material/styles';
-import { esES } from '@mui/material/locale';
+import { colors } from './design-system/tokens/colors';
+import { typography } from './design-system/tokens/typography';
+import { radius } from './design-system/tokens/radius';
 
-export const theme = createTheme(
-  {
-    palette: {
-      primary: {
-        main: '#1976d2',
-        dark: '#115293',
-        light: '#42a5f5',
-      },
-      secondary: {
-        main: '#9c27b0',
-      },
-      background: {
-        default: '#f5f5f5',
-        paper: '#ffffff',
-      },
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: colors.primary[600],
+      light: colors.primary[400],
+      dark: colors.primary[800],
     },
-    typography: {
-      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    secondary: {
+      main: colors.primary[400],
+      light: colors.primary[200],
+      dark: colors.primary[700],
     },
-    shape: {
-      borderRadius: 8,
+    background: {
+      default: colors.background.soft,
+      paper: colors.surface.default,
     },
-    components: {
-      MuiButton: {
-        defaultProps: {
-          disableElevation: true,
+    text: {
+      primary: colors.text.primary,
+      secondary: colors.text.secondary,
+    },
+    success: {
+      main: colors.success.main,
+    },
+    warning: {
+      main: colors.warning.main,
+    },
+    error: {
+      main: colors.danger.main,
+    },
+    info: {
+      main: colors.info.main,
+    },
+  },
+  typography: {
+    fontFamily: typography.fontFamily,
+  },
+  shape: {
+    borderRadius: parseInt(radius.md),
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          fontFamily: typography.fontFamily,
         },
       },
-      MuiCard: {
-        defaultProps: {
-          variant: 'outlined',
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
+          borderRadius: radius.sm,
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: radius.xs,
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
         },
       },
     },
   },
-  esES,
-);
+});
+
+export default theme;

@@ -4207,3 +4207,956 @@ Mantén todas las reglas del CRM_MASTER_SPEC_OPENCODE.md.
 
 El Sprint 10 continúa siendo el sprint activo.
 No avances al Sprint 11.
+
+
+DIRECTRIZ TRANSVERSAL PRIORITARIA DE UX/UI
+
+El frontend actual NO representa todavía la línea visual definitiva
+del producto.
+
+Antes de continuar desarrollando nuevas interfaces del Sprint 10 y
+antes de iniciar visualmente el Sprint 11, se debe realizar una
+convergencia de diseño.
+
+IMPORTANTE:
+
+- NO modificar el backend funcional existente.
+- NO eliminar APIs.
+- NO cambiar modelos de datos por razones visuales.
+- NO implementar funcionalidades de sprints futuros.
+- NO rehacer todo el proyecto.
+- NO copiar código, marca, logos, textos ni assets de terceros.
+
+La referencia principal de UX/UI será:
+
+https://es.kommo.com/crm/
+
+El objetivo NO es copiar literalmente Kommo.
+
+El objetivo es conseguir un lenguaje visual de categoría similar:
+
+- minimalista;
+- SaaS premium;
+- mucho espacio blanco;
+- tipografía moderna;
+- azul marino profundo;
+- componentes limpios;
+- baja saturación visual;
+- navegación compacta;
+- áreas amplias de trabajo;
+- iconografía profesional;
+- diseño consistente;
+- visualmente orientado a CRM conversacional;
+- excelente experiencia desktop, tablet y mobile.
+
+==================================================
+1. PROHIBICIÓN DE EMOJIS EN LA UI
+==================================================
+
+Eliminar de la interfaz profesional emojis y símbolos Unicode usados
+como iconos.
+
+NO utilizar:
+
+⚠️
+🔥
+⭐
+💰
+📊
+📞
+✉️
+🌐
+🟢
+🔴
+🟡
+
+ni similares como elementos visuales de interfaz.
+
+Utilizar exclusivamente un sistema consistente de iconografía SVG.
+
+Adoptar una única librería para toda la aplicación.
+
+Preferencia:
+
+Lucide React
+
+o, si la aplicación ya utiliza consistentemente MUI Icons,
+mantener Material Icons.
+
+NO mezclar múltiples bibliotecas.
+
+Los canales sí pueden usar sus iconos oficiales cuando corresponda:
+
+WhatsApp
+Instagram
+Facebook
+Email
+
+pero manteniendo tamaños y tratamiento visual uniforme.
+
+==================================================
+2. PALETA VISUAL
+==================================================
+
+Crear una identidad ORIGINAL basada conceptualmente en:
+
+PRIMARY DARK
+azul marino muy profundo
+
+PRIMARY
+azul/violeta tecnológico
+
+BACKGROUND
+blanco
+
+SURFACE
+blanco / gris extremadamente claro
+
+TEXT PRIMARY
+azul marino casi negro
+
+TEXT SECONDARY
+gris neutro
+
+BORDER
+gris claro
+
+ACCENT
+gradiente reservado para CTA importantes
+
+SUCCESS
+verde discreto
+
+WARNING
+ámbar discreto
+
+DANGER
+rojo discreto
+
+NO llenar cada componente con colores.
+
+Los colores deben transmitir significado, no decoración.
+
+==================================================
+3. TIPOGRAFÍA
+==================================================
+
+Eliminar cualquier apariencia serif o tipografía inconsistente.
+
+Seleccionar una tipografía sans-serif moderna y geométrica.
+
+Opciones recomendadas:
+
+Inter
+Manrope
+DM Sans
+
+Elegir UNA.
+
+Implementarla globalmente.
+
+Crear escala:
+
+display
+h1
+h2
+h3
+body
+body-small
+caption
+label
+
+==================================================
+4. DESIGN TOKENS
+==================================================
+
+Crear:
+
+src/design-system/tokens/
+
+colors.ts
+typography.ts
+spacing.ts
+radius.ts
+shadows.ts
+breakpoints.ts
+transitions.ts
+zIndex.ts
+
+No colocar valores arbitrarios repetidos dentro de componentes.
+
+==================================================
+5. RADIO DE COMPONENTES
+==================================================
+
+El frontend actual utiliza demasiados elementos tipo cápsula.
+
+Reducir el uso excesivo de border-radius.
+
+Definir aproximadamente:
+
+small
+medium
+large
+pill
+
+Usar "pill" solamente donde tenga sentido:
+
+- filtros;
+- pequeños badges;
+- chips;
+- CTA concretos.
+
+NO convertir tarjetas, tablas y paneles completos en cápsulas gigantes.
+
+==================================================
+6. SOMBRAS Y BORDES
+==================================================
+
+Utilizar sombras extremadamente sutiles.
+
+Preferir:
+
+borde claro
++
+diferencia de superficie
+
+antes que sombras fuertes.
+
+El producto debe sentirse ligero.
+
+==================================================
+7. APP SHELL
+==================================================
+
+Reconstruir el layout principal.
+
+Desktop:
+
+┌──────┬─────────────────────────────────────────┐
+│      │ Topbar                                  │
+│      ├─────────────────────────────────────────┤
+│ Side │                                         │
+│ bar  │            Área de trabajo             │
+│      │                                         │
+│      │                                         │
+└──────┴─────────────────────────────────────────┘
+
+Sidebar:
+
+- mucho más refinada;
+- compacta;
+- iconos SVG;
+- sin emojis;
+- indicador activo discreto;
+- tooltips;
+- badges pequeños;
+- posibilidad de expandirse.
+
+No debe competir visualmente con el contenido.
+
+==================================================
+8. TOPBAR
+==================================================
+
+Topbar minimalista.
+
+Incluir:
+
+- tenant;
+- búsqueda;
+- crear;
+- notificaciones;
+- ayuda;
+- usuario.
+
+Eliminar iconografía infantil o excesivamente coloreada.
+
+==================================================
+9. REESTRUCTURAR TICKETS
+==================================================
+
+La pantalla actual de Tickets debe conservar su funcionalidad,
+pero modificar completamente la presentación.
+
+Actualmente:
+
+- KPI muy grandes;
+- múltiples badges de colores;
+- emojis/símbolos;
+- tabla excesivamente redondeada;
+- sidebar demasiado dominante.
+
+Nuevo diseño:
+
+HEADER
+
+Tickets
+
+texto secundario:
+Gestiona las solicitudes y conversaciones de tus clientes.
+
+                           Buscar   Filtros   + Nuevo ticket
+
+
+KPI COMPACTOS
+
+Abiertos        24
+En proceso      11
+SLA vencidos     3
+Resueltos hoy   18
+
+No utilizar enormes tarjetas tipo cápsula.
+
+Después:
+
+Tabs:
+
+Todos
+Abiertos
+Pendientes
+Resueltos
+
+Vista:
+
+Lista | Kanban
+
+
+TABLA
+
+#1847
+No puedo acceder al dashboard
+Juan Pérez
+
+Estado
+Nuevo
+
+Prioridad
+Alta
+
+Canal
+[icono WhatsApp] WhatsApp
+
+Responsable
+JP Juan Pérez
+
+SLA
+30 min
+
+
+Los estados deben ser visualmente discretos.
+
+Ejemplo:
+
+Nuevo
+fondo azul muy tenue
+
+En proceso
+fondo ámbar muy tenue
+
+Esperando
+fondo violeta muy tenue
+
+Resuelto
+fondo verde muy tenue
+
+Cerrado
+fondo gris
+
+NO utilizar emojis ni círculos grandes de colores.
+
+==================================================
+10. DRAWER DE TICKET
+==================================================
+
+Al seleccionar un ticket en Desktop abrir:
+
+EntityDrawer
+
+SIN abandonar el listado.
+
+Estructura:
+
+Ticket #1847
+
+No puedo acceder al dashboard
+
+Cliente
+Juan Pérez
+
+Estado
+Nuevo
+
+Prioridad
+Alta
+
+Responsable
+Carlos Martínez
+
+SLA
+30 min
+
+-----------------------
+
+Conversación
+
+-----------------------
+
+Actividad
+
+Hoy 10:35
+Mensaje recibido
+
+Hoy 10:21
+Ticket creado
+
+-----------------------
+
+Comentarios internos
+
+-----------------------
+
+Adjuntos
+
+
+Usar iconos SVG discretos.
+
+==================================================
+11. LANDING PAGE: CREAR AHORA
+==================================================
+
+Actualmente el proyecto no posee la Landing Page comercial.
+
+Crear una nueva aplicación/ruta pública.
+
+Ruta:
+
+/
+
+Debe funcionar SIN autenticación.
+
+NO utilizar el AppShell del CRM para la landing.
+
+La landing tendrá su propio:
+
+PublicLayout
+
+==================================================
+12. HEADER LANDING
+==================================================
+
+Header minimalista:
+
+LOGO
+
+Producto
+Soluciones
+Integraciones
+Precios
+Recursos
+
+                  Iniciar sesión
+                  Comenzar gratis
+
+Header blanco.
+
+Sticky al hacer scroll.
+
+==================================================
+13. HERO LANDING
+==================================================
+
+El hero debe transmitir inmediatamente:
+
+CRM
++
+Conversaciones
++
+Ventas
++
+IA
+
+Ejemplo conceptual:
+
+---------------------------------------------------
+
+                    LOGO
+
+Convierte conversaciones
+en clientes y ventas.
+
+Centraliza WhatsApp, redes sociales,
+clientes, ventas y automatizaciones
+en un CRM impulsado por inteligencia.
+
+[ Comenzar gratis ]    [ Ver demostración ]
+
+        VISUAL DEL PROPIO CRM
+
+---------------------------------------------------
+
+NO utilizar fotografías genéricas.
+
+Utilizar composiciones visuales basadas
+en la propia interfaz del producto.
+
+Por ejemplo:
+
+- Pipeline
+- cliente 360
+- conversación WhatsApp
+- recomendación IA
+- oportunidad comercial
+
+==================================================
+14. LANDING: SEGUNDA SECCIÓN
+==================================================
+
+Título:
+
+Todo tu proceso comercial
+en un solo lugar.
+
+Mostrar visualmente:
+
+Conversaciones
+        ↓
+Cliente
+        ↓
+Oportunidad
+        ↓
+Venta
+        ↓
+Fidelización
+
+==================================================
+15. LANDING: OMNICANAL
+==================================================
+
+Sección:
+
+Todos tus canales.
+Una sola conversación.
+
+Mostrar:
+
+WhatsApp
+Instagram
+Facebook
+Email
+Web
+
+con una representación gráfica del Inbox CRM.
+
+==================================================
+16. LANDING: IA
+==================================================
+
+Sección protagonista:
+
+IA que entiende tu negocio.
+
+Ejemplos visuales:
+
+"184 clientes llevan más de 60 días sin comprar."
+
+"El producto X aumentó sus ventas un 28%."
+
+"Recomendamos contactar estas 32 oportunidades."
+
+"Crear campaña"
+
+==================================================
+17. LANDING: PIPELINE
+==================================================
+
+Mostrar el pipeline real del CRM.
+
+Lead
+→
+Contactado
+→
+Cotización
+→
+Negociación
+→
+Ganado
+
+Debe utilizar los mismos componentes
+visuales que la aplicación.
+
+==================================================
+18. LANDING: PRODUCTOS
+==================================================
+
+Sección:
+
+Descubre qué vender
+y a quién venderlo.
+
+Mostrar:
+
+Producto A
+Alta rotación
+
+Producto B
+Creciendo
+
+Producto C
+Baja rotación
+
+Recomendación IA.
+
+==================================================
+19. LANDING: AUTOMATIZACIONES
+==================================================
+
+Mostrar visualmente:
+
+Nuevo lead
+   ↓
+Asignar vendedor
+   ↓
+Enviar WhatsApp
+   ↓
+Esperar 24 horas
+   ↓
+Crear tarea
+
+==================================================
+20. LANDING: ANALÍTICA
+==================================================
+
+Mostrar:
+
+Ventas
+Conversión
+Canales
+Productos
+Campañas
+
+utilizando fragmentos reales de nuestra UI.
+
+==================================================
+21. LANDING: INTEGRACIONES
+==================================================
+
+Mostrar las futuras integraciones:
+
+WhatsApp
+Instagram
+Facebook
+Email
+
+y arquitectura preparada para nuevas integraciones.
+
+No afirmar que una integración está disponible
+si todavía no está terminada.
+
+Puede marcarse:
+
+Disponible
+Beta
+Próximamente
+
+según el estado real.
+
+==================================================
+22. LANDING: PLANES
+==================================================
+
+Preparar visualmente:
+
+Starter
+Professional
+Business
+
+Pero obtener la información real del sistema SaaS
+cuando exista.
+
+No inventar límites comerciales definitivos.
+
+==================================================
+23. CTA FINAL
+==================================================
+
+Cerrar con:
+
+Tu operación comercial.
+Una sola plataforma.
+
+[ Comenzar gratis ]
+
+==================================================
+24. FOOTER
+==================================================
+
+Producto
+Soluciones
+Integraciones
+Precios
+Recursos
+Empresa
+Legal
+
+==================================================
+25. LOGIN
+==================================================
+
+Crear /login.
+
+Debe compartir exactamente la identidad visual
+de la Landing Page.
+
+NO utilizar el dashboard como fondo.
+
+Diseño:
+
+┌───────────────────────────┬────────────────────────────┐
+│                           │                            │
+│ Mensaje de producto       │ Inicia sesión             │
+│                           │                            │
+│ Visual del CRM / IA       │ Correo                    │
+│                           │ Contraseña                 │
+│                           │                            │
+│                           │ [ Entrar ]                 │
+│                           │                            │
+│                           │ Continuar con Google       │
+│                           │                            │
+│                           │ ¿Olvidaste tu contraseña?  │
+│                           │                            │
+└───────────────────────────┴────────────────────────────┘
+
+En móvil mostrar únicamente formulario + marca.
+
+==================================================
+26. REGISTRO
+==================================================
+
+Crear estructura visual para:
+
+/register
+
+Conservar la integración real existente.
+
+Flujo:
+
+Crear cuenta
+→
+Datos básicos
+→
+Crear empresa
+→
+Entrar al CRM
+
+NO romper Keycloak.
+
+==================================================
+27. PUBLIC / PRIVATE ROUTES
+==================================================
+
+Separar claramente:
+
+PUBLIC
+
+/
+ /login
+ /register
+ /forgot-password
+ /pricing
+
+PRIVATE
+
+/app
+/app/dashboard
+/app/contacts
+/app/inbox
+/app/tickets
+...
+
+==================================================
+28. COMPONENTES REUTILIZABLES
+==================================================
+
+Crear:
+
+PublicHeader
+PublicFooter
+Hero
+Section
+ProductPreview
+CTA
+
+AppShell
+Sidebar
+Topbar
+
+Button
+IconButton
+Input
+Select
+Badge
+StatusBadge
+Avatar
+Card
+Metric
+Tabs
+DataTable
+Drawer
+Modal
+Tooltip
+Dropdown
+Skeleton
+EmptyState
+Toast
+
+No duplicar estos componentes.
+
+==================================================
+29. COMPONENTE DE ICONOS
+==================================================
+
+Crear una capa única:
+
+AppIcon
+
+Ejemplo:
+
+<AppIcon name="ticket" />
+<AppIcon name="message" />
+<AppIcon name="users" />
+<AppIcon name="sales" />
+
+para impedir que futuros desarrolladores
+introduzcan emojis arbitrariamente.
+
+==================================================
+30. RESPONSIVE
+==================================================
+
+Desktop
+Tablet
+Mobile
+
+LANDING:
+
+Debe ser completamente responsive.
+
+CRM:
+
+Desktop:
+Sidebar.
+
+Tablet:
+Sidebar colapsada.
+
+Mobile:
+Bottom navigation para acciones principales.
+
+==================================================
+31. REGLA DE IDENTIDAD
+==================================================
+
+Landing
+Login
+Registro
+Onboarding
+CRM
+
+deben sentirse como partes DEL MISMO PRODUCTO.
+
+Misma:
+
+tipografía
+paleta
+botones
+iconografía
+espaciado
+radios
+animaciones
+tono visual.
+
+==================================================
+32. NO COPIAR KOMMO
+==================================================
+
+Kommo es una referencia visual y de UX.
+
+NO utilizar:
+
+- nombre Kommo;
+- logo Kommo;
+- fuentes propietarias;
+- imágenes;
+- screenshots;
+- textos;
+- código;
+- estilos CSS copiados;
+- ilustraciones;
+- assets.
+
+Crear nuestra propia identidad.
+
+==================================================
+33. PRIMERA TAREA
+==================================================
+
+ANTES DE CAMBIAR CÓDIGO:
+
+Analiza el frontend actual y genera:
+
+docs/frontend/UI_AUDIT_SPRINT_10.md
+
+Debe incluir:
+
+1. componentes existentes;
+2. inconsistencias visuales;
+3. uso actual de emojis;
+4. icon libraries existentes;
+5. tipografías existentes;
+6. colores existentes;
+7. layout actual;
+8. rutas públicas;
+9. rutas privadas;
+10. componentes reutilizables;
+11. componentes a sustituir;
+12. riesgo de regresiones;
+13. plan de migración.
+
+Después:
+
+crear Design System.
+
+Después:
+
+crear Landing.
+
+Después:
+
+crear Login visual.
+
+Después:
+
+reestructurar Tickets.
+
+NO iniciar Sprint 11.
+
+==================================================
+34. RESULTADO ESPERADO
+==================================================
+
+Cuando termine esta intervención deben existir:
+
+✓ Landing Page
+✓ Login coherente
+✓ Design System
+✓ Iconografía sin emojis
+✓ AppShell refinado
+✓ Tickets rediseñado
+✓ Desktop
+✓ Tablet
+✓ Mobile
+✓ componentes reutilizables
+
+Y el Sprint 10 continuará manteniendo
+toda su funcionalidad backend existente.

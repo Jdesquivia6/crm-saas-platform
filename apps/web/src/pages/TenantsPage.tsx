@@ -33,7 +33,7 @@ interface Tenant {
 
 export default function TenantsPage() {
   const [open, setOpen] = useState(false);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenants] = useState<Tenant[]>([]);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
