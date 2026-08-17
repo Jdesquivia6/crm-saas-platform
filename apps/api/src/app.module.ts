@@ -14,6 +14,9 @@ import { IdentityModule } from './identity/identity.module';
 import { OmnichannelModule } from './omnichannel/omnichannel.module';
 import { IntegrationModule } from './integration/integration.module';
 import { TicketingModule } from './ticketing/ticketing.module';
+import { LeadsModule } from './leads/leads.module';
+import { PipelinesModule } from './pipelines/pipelines.module';
+import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -34,6 +37,9 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     OmnichannelModule,
     IntegrationModule,
     TicketingModule,
+    LeadsModule,
+    PipelinesModule,
+    OpportunitiesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

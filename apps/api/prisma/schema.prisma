@@ -59,6 +59,10 @@ model Tenant {
   slaPolicies    SlaPolicy[]
   tickets        Ticket[]
   satisfactionSurveys SatisfactionSurvey[]
+  leadSources    LeadSource[]
+  leads          Lead[]
+  pipelines      Pipeline[]
+  opportunities  Opportunity[]
 
   @@index([status])
   @@index([createdAt])
@@ -152,6 +156,8 @@ model User {
   apiKeys           ApiKey[]
   contactAssignments ContactAssignment[]
   ticketAssignments TicketAssignment[]
+  assignedLeads      Lead[]
+  assignedOpportunities Opportunity[]
 
   @@index([email])
   @@index([status])
@@ -478,6 +484,8 @@ model Company {
   contactCompanyRelations ContactCompanyRelation[]
   activities Activity[]
   tickets    Ticket[]
+  leads      Lead[]
+  opportunities Opportunity[]
 
   @@index([tenantId])
   @@index([tenantId, name])
@@ -529,6 +537,9 @@ model Contact {
   conversationsAsParticipant ConversationParticipant[]
   conversations Conversation[]
   tickets      Ticket[]
+  leads        Lead[]
+  opportunitiesAsContact OpportunityContact[]
+  ownedOpportunities Opportunity[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -1329,4 +1340,199 @@ model SatisfactionSurvey {
   @@index([tenantId])
   @@index([contactId])
   @@map("satisfaction_surveys")
+}
+
+// ─── SPRINT 11: LEADS, PIPELINE Y OPORTUNIDADES ────────────
+
+model LeadSource {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  code        String   @db.VarChar(30)
+  description String?  @db.VarChar(500)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("lead_sources")
+}
+
+model Lead {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  sourceId      String?  @map("source_id") @db.Uuid
+  contactId     String?  @map("contact_id") @db.Uuid
+  companyId     String?  @map("company_id") @db.Uuid
+  assignedTo    String?  @map("assigned_to") @db.Uuid
+  firstName     String   @map("first_name") @db.VarChar(100)
+  lastName      String?  @map("last_name") @db.VarChar(100)
+  email         String?  @db.VarChar(150)
+  phone         String?  @db.VarChar(50)
+  status        String   @default("NEW") @db.VarChar(20) // NEW, CONTACTED, QUALIFIED, UNQUALIFIED, CONVERTED
+  priority      String   @default("NORMAL") @db.VarChar(20) // LOW, NORMAL, HIGH, URGENT
+  rating        Int?     // 1-5
+  budget        Decimal? @db.Decimal(15, 2)
+  expectedCloseDate DateTime? @map("expected_close_date") @db.Timestamptz()
+  lostReason    String?  @map("lost_reason") @db.VarChar(500)
+  convertedAt   DateTime? @map("converted_at") @db.Timestamptz()
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source     LeadSource?     @relation(fields: [sourceId], references: [id])
+  contact    Contact?        @relation(fields: [contactId], references: [id])
+  company    Company?        @relation(fields: [companyId], references: [id])
+  assignee   User?           @relation(fields: [assignedTo], references: [id])
+  statusHistory LeadStatusHistory[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedTo])
+  @@index([sourceId])
+  @@index([contactId])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model LeadStatusHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  fromStatus String?  @map("from_status") @db.VarChar(20)
+  toStatus   String   @map("to_status") @db.VarChar(20)
+  changedBy  String?  @map("changed_by") @db.Uuid
+  reason     String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([leadId, createdAt])
+  @@map("lead_status_history")
+}
+
+model Pipeline {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  isDefault   Boolean  @default(false) @map("is_default")
+  isActive    Boolean  @default(true) @map("is_active")
+  currencyCode String  @default("COP") @map("currency_code") @db.VarChar(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stages   PipelineStage[]
+  opportunities Opportunity[]
+
+  @@index([tenantId])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  pipelineId  String   @map("pipeline_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  code        String   @db.VarChar(30)
+  position    Int      @default(0)
+  color       String?  @db.VarChar(7)
+  probability Int      @default(0) // 0-100
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  pipeline     Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@unique([pipelineId, code])
+  @@index([pipelineId])
+  @@index([tenantId])
+  @@map("pipeline_stages")
+}
+
+model Opportunity {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  pipelineId      String   @map("pipeline_id") @db.Uuid
+  stageId         String   @map("stage_id") @db.Uuid
+  contactId       String?  @map("contact_id") @db.Uuid
+  companyId       String?  @map("company_id") @db.Uuid
+  assignedTo      String?  @map("assigned_to") @db.Uuid
+  title           String   @db.VarChar(200)
+  description     String?  @db.Text
+  amount          Decimal? @db.Decimal(15, 2)
+  currencyCode    String   @default("COP") @map("currency_code") @db.VarChar(3)
+  probability     Int      @default(0) // 0-100
+  expectedCloseDate DateTime? @map("expected_close_date") @db.Timestamptz()
+  actualCloseDate DateTime? @map("actual_close_date") @db.Timestamptz()
+  status          String   @default("OPEN") @db.VarChar(20) // OPEN, WON, LOST, ABANDONED
+  lostReason      String?  @map("lost_reason") @db.VarChar(500)
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  tenant     Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pipeline   Pipeline                  @relation(fields: [pipelineId], references: [id])
+  stage      PipelineStage             @relation(fields: [stageId], references: [id])
+  contact    Contact?                  @relation(fields: [contactId], references: [id])
+  company    Company?                  @relation(fields: [companyId], references: [id])
+  assignee   User?                     @relation(fields: [assignedTo], references: [id])
+  contacts   OpportunityContact[]
+  stageHistory OpportunityStageHistory[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedTo])
+  @@index([pipelineId])
+  @@index([stageId])
+  @@index([contactId])
+  @@index([createdAt])
+  @@map("opportunities")
+}
+
+model OpportunityContact {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  opportunityId String   @map("opportunity_id") @db.Uuid
+  contactId     String   @map("contact_id") @db.Uuid
+  role          String?  @db.VarChar(50) // DECISION_MAKER, INFLUENCER, BUYER
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  contact     Contact     @relation(fields: [contactId], references: [id])
+
+  @@unique([opportunityId, contactId])
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([tenantId])
+  @@map("opportunity_contacts")
+}
+
+model OpportunityStageHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  opportunityId String   @map("opportunity_id") @db.Uuid
+  fromStageId   String?  @map("from_stage_id") @db.Uuid
+  toStageId     String   @map("to_stage_id") @db.Uuid
+  changedBy     String?  @map("changed_by") @db.Uuid
+  reason        String?  @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([opportunityId, createdAt])
+  @@map("opportunity_stage_history")
 }
