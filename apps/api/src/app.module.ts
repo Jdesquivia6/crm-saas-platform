@@ -23,6 +23,7 @@ import { OrdersModule } from './orders/orders.module';
 import { SalesModule } from './sales/sales.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
+import { BillingModule } from './billing/billing.module';
 import { JwtAuthGuard } from './iam/guards/jwt-auth.guard';
 import { RolesGuard } from './iam/guards/roles.guard';
 import { PermissionsGuard } from './iam/guards/permissions.guard';
@@ -52,6 +53,7 @@ import { PermissionsGuard } from './iam/guards/permissions.guard';
     SalesModule,
     InvoicesModule,
     PaymentsModule,
+    BillingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
