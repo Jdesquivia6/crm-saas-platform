@@ -50,6 +50,10 @@ model Tenant {
   channelAccounts ChannelAccount[]
   conversations Conversation[]
   cannedResponses CannedResponse[]
+  connections    IntegrationConnection[]
+  webhookInbox   IntegrationWebhookInbox[]
+  webhookOutbox  IntegrationWebhookOutbox[]
+  templates      MessageTemplate[]
 
   @@index([status])
   @@index([createdAt])
@@ -1013,4 +1017,109 @@ model CannedResponse {
   @@unique([tenantId, shortcut])
   @@index([tenantId])
   @@map("canned_responses")
+}
+
+// ─── INTEGRATION ──────────────────────────────────────
+
+model IntegrationConnection {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  provider     String   @db.VarChar(30) // WHATSAPP_BUSINESS, INSTAGRAM, FACEBOOK, SMTP, IMAP
+  name         String   @db.VarChar(200)
+  config       Json     // { accessToken, phoneNumberId, businessAccountId, ... }
+  status       String   @default("ACTIVE") @db.VarChar(20) // ACTIVE, INACTIVE, ERROR, EXPIRED
+  lastSyncAt   DateTime? @map("last_sync_at") @db.Timestamptz()
+  errorCount   Int      @default(0) @map("error_count")
+  lastError    String?  @map("last_error") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, provider])
+  @@map("integration_connections")
+}
+
+model IntegrationWebhookInbox {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  provider     String   @db.VarChar(30)
+  externalId   String?  @map("external_id") @db.VarChar(250)
+  payload      Json
+  headers      Json?
+  status       String   @default("RECEIVED") @db.VarChar(20) // RECEIVED, PROCESSED, FAILED, IGNORED
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz()
+  errorMessage String?  @map("error_message") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([provider, externalId])
+  @@index([status])
+  @@map("integration_webhook_inbox")
+}
+
+model IntegrationWebhookOutbox {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  provider     String   @db.VarChar(30)
+  externalId   String?  @map("external_id") @db.VarChar(250)
+  payload      Json
+  status       String   @default("PENDING") @db.VarChar(20) // PENDING, SENT, FAILED, RETRYING
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(3) @map("max_attempts")
+  lastAttemptAt DateTime? @map("last_attempt_at") @db.Timestamptz()
+  errorMessage String?  @map("error_message") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([tenantId, provider])
+  @@map("integration_webhook_outbox")
+}
+
+// ─── MESSAGING ────────────────────────────────────────
+
+model MessageDeliveryEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  messageId      String   @map("message_id") @db.Uuid
+  externalId     String?  @map("external_id") @db.VarChar(250)
+  status         String   @db.VarChar(20) // SENT, DELIVERED, READ, FAILED, UNDELIVERABLE
+  errorCode      String?  @map("error_code") @db.VarChar(50)
+  errorMessage   String?  @map("error_message") @db.VarChar(500)
+  metadata       Json?
+  eventTimestamp DateTime @default(now()) @map("event_timestamp") @db.Timestamptz()
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([messageId])
+  @@index([tenantId])
+  @@index([externalId])
+  @@map("message_delivery_events")
+}
+
+model MessageTemplate {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  name         String   @db.VarChar(100)
+  category     String   @db.VarChar(50) // MARKETING, UTILITY, AUTHENTICATION
+  language     String   @default("es") @db.VarChar(10)
+  body         String   @db.Text
+  variables    Json?    // ["name", "appointment_date"]
+  status       String   @default("APPROVED") @db.VarChar(20) // DRAFT, PENDING, APPROVED, REJECTED
+  externalId   String?  @map("external_id") @db.VarChar(250)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, category])
+  @@map("message_templates")
 }
