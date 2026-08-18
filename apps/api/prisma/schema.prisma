@@ -94,6 +94,13 @@ model Tenant {
   campaignRecipients CampaignRecipient[]
   campaignEvents CampaignEvent[]
   campaignConversions CampaignConversion[]
+  analyticsEvents AnalyticsEvent[]
+  contactMetricsDaily ContactMetricsDaily[]
+  productMetricsDaily ProductMetricsDaily[]
+  agentMetricsDaily AgentMetricsDaily[]
+  channelMetricsDaily ChannelMetricsDaily[]
+  campaignMetricsDaily CampaignMetricsDaily[]
+  tenantMetricsDaily TenantMetricsDaily[]
 
   @@index([status])
   @@index([createdAt])
@@ -2484,4 +2491,164 @@ model CampaignConversion {
   @@index([contactId])
   @@index([type])
   @@map("campaign_conversions")
+}
+
+// ─── DASHBOARD Y ANALÍTICA (SPRINT 17) ─────────────────────
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  eventType   String   @map("event_type") @db.VarChar(50) // PAGE_VIEW, BUTTON_CLICK, FORM_SUBMIT, SEARCH, etc.
+  entityType  String?  @map("entity_type") @db.VarChar(50) // CONTACT, LEAD, OPPORTUNITY, TICKET, etc.
+  entityId    String?  @map("entity_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  metadata    Json?
+  ipAddress   String?  @map("ip_address") @db.VarChar(50)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model ContactMetricsDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  date          DateTime @db.Date
+  newContacts   Int      @default(0) @map("new_contacts")
+  activeContacts Int     @default(0) @map("active_contacts")
+  convertedToLead Int    @default(0) @map("converted_to_lead")
+  convertedToOpp Int     @default(0) @map("converted_to_opportunity")
+  churned       Int      @default(0)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@map("contact_metrics_daily")
+}
+
+model ProductMetricsDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  date          DateTime @db.Date
+  productId     String?  @map("product_id") @db.Uuid
+  views         Int      @default(0)
+  addedToCart   Int      @default(0) @map("added_to_cart")
+  addedToQuote  Int      @default(0) @map("added_to_quote")
+  soldQuantity  Int      @default(0) @map("sold_quantity")
+  soldAmount    Decimal  @default(0) @map("sold_amount") @db.Decimal(14, 2)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, date, productId])
+  @@index([tenantId])
+  @@index([productId])
+  @@map("product_metrics_daily")
+}
+
+model AgentMetricsDaily {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  date            DateTime @db.Date
+  ticketsAssigned Int      @default(0) @map("tickets_assigned")
+  ticketsResolved Int      @default(0) @map("tickets_resolved")
+  avgResponseTime Int      @default(0) @map("avg_response_time") // seconds
+  avgResolutionTime Int    @default(0) @map("avg_resolution_time") // seconds
+  satisfactionScore Decimal? @map("satisfaction_score") @db.Decimal(3, 2)
+  conversationsHandled Int @default(0) @map("conversations_handled")
+  messagesSent    Int      @default(0) @map("messages_sent")
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, userId, date])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("agent_metrics_daily")
+}
+
+model ChannelMetricsDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  channel       String   @db.VarChar(30) // EMAIL, SMS, WHATSAPP, VOICE, SOCIAL
+  date          DateTime @db.Date
+  messagesSent  Int      @default(0) @map("messages_sent")
+  messagesReceived Int   @default(0) @map("messages_received")
+  conversationsStarted Int @default(0) @map("conversations_started")
+  avgResponseTime Int    @default(0) @map("avg_response_time") // seconds
+  satisfactionScore Decimal? @map("satisfaction_score") @db.Decimal(3, 2)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, channel, date])
+  @@index([tenantId])
+  @@map("channel_metrics_daily")
+}
+
+model CampaignMetricsDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  campaignId    String   @map("campaign_id") @db.Uuid
+  date          DateTime @db.Date
+  sent          Int      @default(0)
+  delivered     Int      @default(0)
+  opened        Int      @default(0)
+  clicked       Int      @default(0)
+  bounced       Int      @default(0)
+  unsubscribed  Int      @default(0)
+  conversions   Int      @default(0)
+  conversionValue Decimal @default(0) @map("conversion_value") @db.Decimal(14, 2)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, campaignId, date])
+  @@index([tenantId])
+  @@index([campaignId])
+  @@map("campaign_metrics_daily")
+}
+
+model TenantMetricsDaily {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  date          DateTime @db.Date
+  mrr           Decimal  @default(0) @db.Decimal(14, 2) // Monthly Recurring Revenue
+  arr           Decimal  @default(0) @db.Decimal(14, 2) // Annual Recurring Revenue
+  totalContacts Int      @default(0) @map("total_contacts")
+  newContacts   Int      @default(0) @map("new_contacts")
+  totalLeads    Int      @default(0) @map("total_leads")
+  newLeads      Int      @default(0) @map("new_leads")
+  totalOpportunities Int @default(0) @map("total_opportunities")
+  wonOpportunities Int  @default(0) @map("won_opportunities")
+  lostOpportunities Int  @default(0) @map("lost_opportunities")
+  totalRevenue  Decimal  @default(0) @map("total_revenue") @db.Decimal(14, 2)
+  newRevenue    Decimal  @default(0) @map("new_revenue") @db.Decimal(14, 2)
+  activeTickets Int      @default(0) @map("active_tickets")
+  resolvedTickets Int    @default(0) @map("resolved_tickets")
+  avgSatisfaction Decimal? @map("avg_satisfaction") @db.Decimal(3, 2)
+  activeUsers   Int      @default(0) @map("active_users")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@map("tenant_metrics_daily")
 }
