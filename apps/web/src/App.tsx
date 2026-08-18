@@ -16,6 +16,7 @@ import { SaleList } from './features/sales';
 import { InvoiceList } from './features/invoices';
 import { PaymentList } from './features/payments';
 import { BillingInvoiceList } from './features/billing';
+import { SegmentList, CampaignList } from './features/marketing';
 
 function App() {
   return (
@@ -37,6 +38,8 @@ function App() {
       <Route path="/app/invoices" element={<AppShell title="Facturas"><InvoiceList /></AppShell>} />
       <Route path="/app/payments" element={<AppShell title="Pagos"><PaymentList /></AppShell>} />
       <Route path="/app/billing" element={<AppShell title="Facturación SaaS"><BillingInvoiceList /></AppShell>} />
+      <Route path="/app/segments" element={<AppShell title="Segmentos"><SegmentList /></AppShell>} />
+      <Route path="/app/campaigns" element={<AppShell title="Campañas"><CampaignList /></AppShell>} />
       <Route path="/app/inbox" element={<AppShell title="Inbox"><div>Inbox - Proximamente</div></AppShell>} />
       <Route path="/app/contacts" element={<AppShell title="Contactos"><div>Contactos - Proximamente</div></AppShell>} />
       <Route path="/app/settings" element={<AppShell title="Configuracion"><div>Configuracion - Proximamente</div></AppShell>} />

@@ -86,6 +86,14 @@ model Tenant {
   billingInvoices BillingInvoice[]
   billingInvoiceItems BillingInvoiceItem[]
   billingPayments BillingPayment[]
+  segments       Segment[]
+  campaigns      Campaign[]
+  segmentRules   SegmentRule[]
+  segmentMembers SegmentMember[]
+  campaignChannels CampaignChannel[]
+  campaignRecipients CampaignRecipient[]
+  campaignEvents CampaignEvent[]
+  campaignConversions CampaignConversion[]
 
   @@index([status])
   @@index([createdAt])
@@ -576,6 +584,9 @@ model Contact {
   sales      Sale[]
   invoices   Invoice[]
   paymentIntents PaymentIntent[]
+  segmentMembers SegmentMember[]
+  campaignRecipients CampaignRecipient[]
+  campaignConversions CampaignConversion[]
 
   @@index([tenantId])
   @@index([tenantId, email])
@@ -2293,4 +2304,184 @@ model BillingPayment {
   @@index([invoiceId])
   @@index([status])
   @@map("billing_payments")
+}
+
+// ─── MARKETING Y CAMPAÑAS (SPRINT 16) ─────────────────────
+
+model Segment {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(150)
+  description String?  @db.VarChar(500)
+  type        String   @default("STATIC") @db.VarChar(20) // STATIC, DYNAMIC
+  memberCount Int      @default(0) @map("member_count")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  rules    SegmentRule[]
+  members  SegmentMember[]
+  campaigns Campaign[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("segments")
+}
+
+model SegmentRule {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  segmentId String   @map("segment_id") @db.Uuid
+  field     String   @db.VarChar(100) // email, phone, company, status, lifecycleStage, tags, score
+  operator  String   @db.VarChar(30) // equals, contains, startsWith, endsWith, greaterThan, lessThan, in, notIn
+  value     String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@map("segment_rules")
+}
+
+model SegmentMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  segmentId String   @map("segment_id") @db.Uuid
+  contactId String   @map("contact_id") @db.Uuid
+  addedAt   DateTime @default(now()) @map("added_at") @db.Timestamptz()
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, contactId])
+  @@index([tenantId])
+  @@index([segmentId])
+  @@index([contactId])
+  @@map("segment_members")
+}
+
+model Campaign {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  segmentId       String?  @map("segment_id") @db.Uuid
+  name            String   @db.VarChar(200)
+  description     String?  @db.Text
+  type            String   @default("EMAIL") @db.VarChar(30) // EMAIL, SMS, WHATSAPP, PUSH, SOCIAL
+  status          String   @default("DRAFT") @db.VarChar(30) // DRAFT, SCHEDULED, RUNNING, PAUSED, COMPLETED, CANCELLED
+  subject         String?  @db.VarChar(500)
+  content         Json?
+  scheduledAt     DateTime? @map("scheduled_at") @db.Timestamptz()
+  startedAt       DateTime? @map("started_at") @db.Timestamptz()
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz()
+  totalRecipients Int      @default(0) @map("total_recipients")
+  totalSent       Int      @default(0) @map("total_sent")
+  totalOpened     Int      @default(0) @map("total_opened")
+  totalClicked    Int      @default(0) @map("total_clicked")
+  totalBounced    Int      @default(0) @map("total_bounced")
+  totalUnsubscribed Int    @default(0) @map("total_unsubscribed")
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  segment    Segment?   @relation(fields: [segmentId], references: [id])
+  channels   CampaignChannel[]
+  recipients CampaignRecipient[]
+  events     CampaignEvent[]
+  conversions CampaignConversion[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([segmentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model CampaignChannel {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  channel    String   @db.VarChar(30) // EMAIL, SMS, WHATSAPP, PUSH, SOCIAL
+  config     Json?
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, channel])
+  @@index([tenantId])
+  @@index([campaignId])
+  @@map("campaign_channels")
+}
+
+model CampaignRecipient {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  contactId  String   @map("contact_id") @db.Uuid
+  status     String   @default("PENDING") @db.VarChar(30) // PENDING, SENT, DELIVERED, OPENED, CLICKED, BOUNCED, UNSUBSCRIBED
+  sentAt     DateTime? @map("sent_at") @db.Timestamptz()
+  openedAt   DateTime? @map("opened_at") @db.Timestamptz()
+  clickedAt  DateTime? @map("clicked_at") @db.Timestamptz()
+  bouncedAt  DateTime? @map("bounced_at") @db.Timestamptz()
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([status])
+  @@map("campaign_recipients")
+}
+
+model CampaignEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  contactId  String?  @map("contact_id") @db.Uuid
+  type       String   @db.VarChar(30) // SENT, DELIVERED, OPENED, CLICKED, BOUNCED, UNSUBSCRIBED, CONVERTED
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("campaign_events")
+}
+
+model CampaignConversion {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  contactId  String   @map("contact_id") @db.Uuid
+  type       String   @db.VarChar(30) // LEAD, OPPORTUNITY, SALE, CUSTOMER
+  value      Decimal? @db.Decimal(14, 2)
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id])
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([type])
+  @@map("campaign_conversions")
 }
