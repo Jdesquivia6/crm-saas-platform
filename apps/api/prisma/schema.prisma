@@ -101,6 +101,14 @@ model Tenant {
   channelMetricsDaily ChannelMetricsDaily[]
   campaignMetricsDaily CampaignMetricsDaily[]
   tenantMetricsDaily TenantMetricsDaily[]
+  modelConfigs     ModelConfig[]
+  prompts          Prompt[]
+  aiRequests       AiRequest[]
+  aiUsages         AiUsage[]
+  aiInsights       AiInsight[]
+  aiRecommendations AiRecommendation[]
+  knowledgeBases   KnowledgeBase[]
+  knowledgeDocuments KnowledgeDocument[]
 
   @@index([status])
   @@index([createdAt])
@@ -2651,4 +2659,195 @@ model TenantMetricsDaily {
   @@unique([tenantId, date])
   @@index([tenantId])
   @@map("tenant_metrics_daily")
+}
+
+// ─── IA (SPRINT 18) ────────────────────────────────────────
+
+model ModelConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  name            String   @db.VarChar(100)
+  provider        String   @db.VarChar(50) // openai, anthropic, google, azure, custom
+  model           String   @db.VarChar(100) // gpt-4o, claude-3.5-sonnet, etc.
+  apiKeyEncrypted String?  @map("api_key_encrypted") @db.Text
+  apiEndpoint     String?  @map("api_endpoint") @db.VarChar(500)
+  maxTokens       Int      @default(4096) @map("max_tokens")
+  temperature     Decimal  @default(0.7) @db.Decimal(3, 2)
+  systemPrompt    String?  @map("system_prompt") @db.Text
+  isActive        Boolean  @default(true) @map("is_active")
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  prompts   Prompt[]
+  requests  AiRequest[]
+  usages    AiUsage[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("model_configs")
+}
+
+model Prompt {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  modelConfigId String   @map("model_config_id") @db.Uuid
+  name          String   @db.VarChar(100)
+  slug          String   @db.VarChar(100)
+  template      String   @db.Text
+  variables     Json?
+  category      String   @db.VarChar(50) // SALES, SUPPORT, MARKETING, GENERAL
+  isActive      Boolean  @default(true) @map("is_active")
+  version       Int      @default(1)
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  modelConfig ModelConfig @relation(fields: [modelConfigId], references: [id])
+  requests   AiRequest[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([modelConfigId])
+  @@map("prompts")
+}
+
+model AiRequest {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  modelConfigId String   @map("model_config_id") @db.Uuid
+  promptId      String?  @map("prompt_id") @db.Uuid
+  entityType    String?  @map("entity_type") @db.VarChar(50)
+  entityId      String?  @map("entity_id") @db.Uuid
+  input         Json
+  output        Json?
+  status        String   @default("PENDING") @db.VarChar(20) // PENDING, RUNNING, COMPLETED, FAILED
+  errorMessage  String?  @map("error_message") @db.Text
+  tokensInput   Int      @default(0) @map("tokens_input")
+  tokensOutput  Int      @default(0) @map("tokens_output")
+  durationMs    Int?     @map("duration_ms")
+  cost          Decimal? @db.Decimal(10, 6)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  modelConfig ModelConfig @relation(fields: [modelConfigId], references: [id])
+  prompt     Prompt?     @relation(fields: [promptId], references: [id])
+
+  @@index([tenantId])
+  @@index([modelConfigId])
+  @@index([promptId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ai_requests")
+}
+
+model AiUsage {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  modelConfigId String   @map("model_config_id") @db.Uuid
+  date          DateTime @db.Date
+  totalRequests Int      @default(0) @map("total_requests")
+  totalTokens   Int      @default(0) @map("total_tokens")
+  totalCost     Decimal  @default(0) @map("total_cost") @db.Decimal(14, 6)
+  avgDurationMs Int?     @map("avg_duration_ms")
+  failedRequests Int     @default(0) @map("failed_requests")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  modelConfig ModelConfig @relation(fields: [modelConfigId], references: [id])
+
+  @@unique([tenantId, modelConfigId, date])
+  @@index([tenantId])
+  @@map("ai_usage")
+}
+
+model AiInsight {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  type        String   @db.VarChar(50) // PATTERN, ANOMALY, TREND, RECOMMENDATION
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  entityType  String?  @map("entity_type") @db.VarChar(50)
+  entityId    String?  @map("entity_id") @db.Uuid
+  confidence  Decimal  @default(0) @db.Decimal(3, 2)
+  priority    String   @default("NORMAL") @db.VarChar(20) // LOW, NORMAL, HIGH, URGENT
+  isRead      Boolean  @default(false) @map("is_read")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("ai_insights")
+}
+
+model AiRecommendation {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  entityType  String   @map("entity_type") @db.VarChar(50)
+  entityId    String   @map("entity_id") @db.Uuid
+  type        String   @db.VarChar(50) // NEXT_ACTION, CROSS_SELL, UPSELL, CHURN_RISK, FOLLOW_UP
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  action      String?  @db.VarChar(500)
+  confidence  Decimal  @default(0) @db.Decimal(3, 2)
+  status      String   @default("PENDING") @db.VarChar(20) // PENDING, ACCEPTED, REJECTED, EXPIRED
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt   DateTime? @map("expires_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@index([type])
+  @@index([status])
+  @@map("ai_recommendations")
+}
+
+model KnowledgeBase {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  type        String   @default("FAQ") @db.VarChar(30) // FAQ, DOCUMENTATION, POLICY, PRODUCT
+  isActive    Boolean  @default(true) @map("is_active")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant              @relation(fields: [tenantId], references: [id])
+  documents KnowledgeDocument[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("knowledge_bases")
+}
+
+model KnowledgeDocument {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  knowledgeBaseId String  @map("knowledge_base_id") @db.Uuid
+  title          String   @db.VarChar(200)
+  content        String   @db.Text
+  category       String?  @db.VarChar(100)
+  tags           String[] @default([])
+  isActive       Boolean  @default(true) @map("is_active")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  knowledgeBase KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
+
+  @@index([tenantId])
+  @@index([knowledgeBaseId])
+  @@index([category])
+  @@map("knowledge_documents")
 }
