@@ -109,6 +109,13 @@ model Tenant {
   aiRecommendations AiRecommendation[]
   knowledgeBases   KnowledgeBase[]
   knowledgeDocuments KnowledgeDocument[]
+  workflows        Workflow[]
+  workflowVersions WorkflowVersion[]
+  workflowNodes    WorkflowNode[]
+  workflowEdges    WorkflowEdge[]
+  workflowRuns     WorkflowRun[]
+  workflowRunNodes WorkflowRunNode[]
+  auditOutboxEvents AuditOutboxEvent[]
 
   @@index([status])
   @@index([createdAt])
@@ -2850,4 +2857,165 @@ model KnowledgeDocument {
   @@index([knowledgeBaseId])
   @@index([category])
   @@map("knowledge_documents")
+}
+
+// ─── AUTOMATIZACIONES (SPRINT 19) ──────────────────────────
+
+model Workflow {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  triggerType String   @map("trigger_type") @db.VarChar(50) // MANUAL, EVENT, SCHEDULE, WEBHOOK
+  triggerConfig Json?  @map("trigger_config")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdBy   String?  @map("created_by") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  versions WorkflowVersion[]
+  runs     WorkflowRun[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([triggerType])
+  @@map("workflows")
+}
+
+model WorkflowVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  workflowId  String   @map("workflow_id") @db.Uuid
+  version     Int      @default(1)
+  isActive    Boolean  @default(true) @map("is_active")
+  publishedAt DateTime? @map("published_at")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  workflow Workflow        @relation(fields: [workflowId], references: [id])
+  nodes    WorkflowNode[]
+  edges    WorkflowEdge[]
+
+  @@unique([workflowId, version])
+  @@index([tenantId])
+  @@index([workflowId])
+  @@map("workflow_versions")
+}
+
+model WorkflowNode {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  versionId       String   @map("version_id") @db.Uuid
+  nodeType        String   @map("node_type") @db.VarChar(50) // TRIGGER, ACTION, CONDITION, DELAY, END
+  name            String   @db.VarChar(100)
+  config          Json
+  positionX       Float    @default(0) @map("position_x")
+  positionY       Float    @default(0) @map("position_y")
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  version  WorkflowVersion @relation(fields: [versionId], references: [id])
+
+  @@index([tenantId])
+  @@index([versionId])
+  @@index([nodeType])
+  @@map("workflow_nodes")
+}
+
+model WorkflowEdge {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  versionId   String   @map("version_id") @db.Uuid
+  sourceNodeId String  @map("source_node_id") @db.Uuid
+  targetNodeId String  @map("target_node_id") @db.Uuid
+  condition   Json?
+  label       String?  @db.VarChar(100)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  version    WorkflowVersion @relation(fields: [versionId], references: [id])
+
+  @@index([tenantId])
+  @@index([versionId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@map("workflow_edges")
+}
+
+model WorkflowRun {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  workflowId  String   @map("workflow_id") @db.Uuid
+  versionId   String?  @map("version_id") @db.Uuid
+  status      String   @default("RUNNING") @db.VarChar(20) // PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+  triggerData Json?    @map("trigger_data")
+  result      Json?
+  errorMessage String? @map("error_message") @db.Text
+  startedAt   DateTime @default(now()) @map("started_at") @db.Timestamptz()
+  completedAt DateTime? @map("completed_at") @db.Timestamptz()
+  durationMs  Int?     @map("duration_ms")
+  metadata    Json?
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  workflow Workflow          @relation(fields: [workflowId], references: [id])
+  runNodes WorkflowRunNode[]
+
+  @@index([tenantId])
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("workflow_runs")
+}
+
+model WorkflowRunNode {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  runId       String   @map("run_id") @db.Uuid
+  nodeId      String   @map("node_id") @db.Uuid
+  status      String   @default("PENDING") @db.VarChar(20) // PENDING, RUNNING, COMPLETED, FAILED, SKIPPED
+  input       Json?
+  output      Json?
+  errorMessage String? @map("error_message") @db.Text
+  startedAt   DateTime @default(now()) @map("started_at") @db.Timestamptz()
+  completedAt DateTime? @map("completed_at") @db.Timestamptz()
+  durationMs  Int?     @map("duration_ms")
+  metadata    Json?
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  run    WorkflowRun @relation(fields: [runId], references: [id])
+
+  @@index([tenantId])
+  @@index([runId])
+  @@index([nodeId])
+  @@index([status])
+  @@map("workflow_run_nodes")
+}
+
+model AuditOutboxEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  eventType   String   @map("event_type") @db.VarChar(50) // WORKFLOW.COMPLETED, CONTACT.CREATED, etc.
+  entityType  String   @map("entity_type") @db.VarChar(50)
+  entityId    String   @map("entity_id") @db.Uuid
+  payload     Json
+  status      String   @default("PENDING") @db.VarChar(20) // PENDING, PROCESSED, FAILED
+  retryCount  Int      @default(0) @map("retry_count")
+  maxRetries  Int      @default(3) @map("max_retries")
+  errorMessage String? @map("error_message") @db.Text
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("audit_outbox_events")
 }

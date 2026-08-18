@@ -18,6 +18,7 @@ import { PaymentList } from './features/payments';
 import { BillingInvoiceList } from './features/billing';
 import { SegmentList, CampaignList } from './features/marketing';
 import { ModelConfigList, KnowledgeBaseList, ChatInterface } from './features/ai';
+import { WorkflowList, WorkflowRuns } from './features/workflows';
 
 function App() {
   return (
@@ -44,6 +45,8 @@ function App() {
       <Route path="/app/ai/models" element={<AppShell title="Modelos IA"><ModelConfigList /></AppShell>} />
       <Route path="/app/ai/knowledge" element={<AppShell title="Base de Conocimiento"><KnowledgeBaseList /></AppShell>} />
       <Route path="/app/ai/chat" element={<AppShell title="Chat IA"><ChatInterface /></AppShell>} />
+      <Route path="/app/workflows" element={<AppShell title="Automatizaciones"><WorkflowList /></AppShell>} />
+      <Route path="/app/workflows/runs" element={<AppShell title="Ejecuciones"><WorkflowRuns /></AppShell>} />
       <Route path="/app/inbox" element={<AppShell title="Inbox"><div>Inbox - Proximamente</div></AppShell>} />
       <Route path="/app/contacts" element={<AppShell title="Contactos"><div>Contactos - Proximamente</div></AppShell>} />
       <Route path="/app/settings" element={<AppShell title="Configuracion"><div>Configuracion - Proximamente</div></AppShell>} />
